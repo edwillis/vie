@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package terrain;
+
+service TerrainGenerationService {
+  // RPC to generate a terrain given the total number of land hexagons
+  rpc GenerateTerrain (TerrainRequest) returns (TerrainResponse);
+}
+
+// Request containing the number of hexagons to generate
+message TerrainRequest {
+  int32 total_land_hexagons = 1;
+}
+
+// Each terrain tile contains a type and coordinates
+message TerrainTile {
+  int32 x = 1;
+  int32 y = 2;
+  string terrain_type = 3;
+}
+
+// Response containing the generated terrain map
+message TerrainResponse {
+  repeated TerrainTile tiles = 1;
+}

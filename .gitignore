@@ -1,0 +1,62 @@
+# Ignore build directories
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+/Makefile
+/CMakeScripts/
+/Testing/
+/cmake_install.cmake
+
+# Ignore vscode files
+/.vscode/
+
+# Ignore Python virtual environments
+/.venv/
+/venv/
+
+# Ignore Python bytecode files
+__pycache__/
+/*.py[cod]
+*.py[cod]
+*$py.class
+
+# Ignore Doxygen generated documentation
+/docs/
+
+# Ignore SQLite database files
+*.db
+
+# Ignore coverage reports
+.coverage
+htmlcov/
+.coverage.*
+
+# Ignore pytest cache
+.pytest_cache/
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+*.swp
+*.swo
+*.bak
+*.orig
+
+# Ignore generated protobuf and gRPC files
+python_services/persistence/persistence_pb2.py
+python_services/persistence/persistence_pb2_grpc.py
+python_services/terrain_generation/terrain_generation_pb2.py
+python_services/terrain_generation/terrain_generation_pb2_grpc.py
+
+# Ignore generated context files
+.copilot-*.txt
+
+# Ignore Doxygen temporary files
+docs/latex/
+docs/html/
+
+# Ignore other temporary files
+*.DS_Store
+*.~lock.*

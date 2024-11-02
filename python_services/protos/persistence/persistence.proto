@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package persistence;
+
+// The Persistence Service definition.
+service PersistenceService {
+    rpc StoreTerrain (StoreTerrainRequest) returns (StoreTerrainResponse);
+    rpc RetrieveTerrain (RetrieveTerrainRequest) returns (RetrieveTerrainResponse);
+}
+
+// Request to store terrain
+message StoreTerrainRequest {
+    repeated TerrainTile tiles = 1;  // List of terrain tiles
+}
+
+// Response from storing terrain
+message StoreTerrainResponse {
+    string terrain_id = 1;  // Unique identifier for the terrain
+}
+
+// Request to retrieve terrain
+message RetrieveTerrainRequest {
+    string terrain_id = 1;  // The ID of the terrain to retrieve
+}
+
+// Response for retrieving terrain
+message RetrieveTerrainResponse {
+    repeated TerrainTile tiles = 1;  // List of terrain tiles
+}
+
+// Terrain tile structure
+message TerrainTile {
+    int32 x = 1;
+    int32 y = 2;
+    string terrain_type = 3;
+}
