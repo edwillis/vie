@@ -10,7 +10,7 @@ from terrain_generation.terrain_generation_pb2 import TerrainRequest, TerrainRes
 
 def test_generate_terrain():
     service = TerrainGeneratorService()
-    request = TerrainRequest(total_land_hexagons=5)
+    request = TerrainRequest(total_land_hexagons=5, persist=0)
     context = MagicMock()
 
     response = service.GenerateTerrain(request, context)
@@ -24,7 +24,7 @@ def test_generate_terrain():
 
 def test_generate_terrain_logging_and_timing():
     service = TerrainGeneratorService()
-    request = TerrainRequest(total_land_hexagons=5)
+    request = TerrainRequest(total_land_hexagons=5, persist=0)
     context = MagicMock()
 
     with patch('terrain_generation.terrain_generation_service.logger') as mock_logger, \
