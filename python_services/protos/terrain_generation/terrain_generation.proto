@@ -10,6 +10,7 @@ service TerrainGenerationService {
 // Request containing the number of hexagons to generate
 message TerrainRequest {
   int32 total_land_hexagons = 1;
+  bool persist = 2;  // Flag to indicate whether to persist the generated terrain
 }
 
 // Each terrain tile contains a type and coordinates
@@ -22,4 +23,5 @@ message TerrainTile {
 // Response containing the generated terrain map
 message TerrainResponse {
   repeated TerrainTile tiles = 1;
+  string terrain_id = 2;  // Identifier for the persisted terrain
 }

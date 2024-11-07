@@ -2,7 +2,11 @@ import logging
 import grpc
 from concurrent import futures
 from timeit import default_timer as timer
-from persistence.persistence_pb2 import TerrainTile
+from persistence.persistence_pb2 import (
+    TerrainTile,
+    StoreTerrainRequest,
+    StoreTerrainResponse,
+)
 from persistence.persistence_pb2_grpc import PersistenceServiceStub
 import terrain_generation.terrain_generation_pb2 as terrain_generation_pb2
 import terrain_generation.terrain_generation_pb2_grpc as terrain_generation_pb2_grpc
@@ -37,12 +41,29 @@ class TerrainGeneratorService(
         start_time = timer()
         try:
             total_land_hexagons = request.total_land_hexagons
+            persist = request.persist
+
             # Generate terrain tiles (dummy implementation)
             tiles = [
                 terrain_generation_pb2.TerrainTile(x=i, y=i, terrain_type="land")
                 for i in range(total_land_hexagons)
             ]
-            response = terrain_generation_pb2.TerrainResponse(tiles=tiles)
+
+            terrain_id = ""
+            if persist:
+                # Persist the generated terrain
+                store_request = StoreTerrainRequest(
+                    tiles=[
+                        TerrainTile(x=tile.x, y=tile.y, terrain_type=tile.terrain_type)
+                        for tile in tiles
+                    ]
+                )
+                store_response = self.persistence_stub.StoreTerrain(store_request)
+                terrain_id = store_response.terrain_id
+
+            response = terrain_generation_pb2.TerrainResponse(
+                tiles=tiles, terrain_id=terrain_id
+            )
             logger.info("Generated terrain with %d tiles", total_land_hexagons)
             return response
         except Exception as e:
