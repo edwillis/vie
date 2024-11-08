@@ -3,6 +3,8 @@ import threading
 import time
 import uuid
 import grpc
+import socket
+import os
 from concurrent import futures
 from sqlalchemy import create_engine, Column, Integer, String, Sequence
 from sqlalchemy.ext.declarative import declarative_base
@@ -12,7 +14,7 @@ import persistence.persistence_pb2_grpc as persistence_pb2_grpc
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("PersistenceService")
 
 # SQLAlchemy setup
 Base = declarative_base()
@@ -67,13 +69,30 @@ class PersistenceServiceServicer(persistence_pb2_grpc.PersistenceServiceServicer
             logger.info(f"RetrieveTerrain invocation duration: {duration:.2f} seconds")
             return response
 
+LOCK_FILE = "/tmp/persistence_service.lock"
+
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    persistence_pb2_grpc.add_PersistenceServiceServicer_to_server(PersistenceServiceServicer(), server)
-    server.add_insecure_port('[::]:50052')
-    server.start()
-    logger.info("Persistence Service started on port 50052")
-    server.wait_for_termination()
+    if os.path.exists(LOCK_FILE):
+        logger.error("Persistence Service is already running.")
+        return
+
+    with open(LOCK_FILE, 'w') as lock_file:
+        lock_file.write(str(os.getpid()))
+
+    try:
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        persistence_pb2_grpc.add_PersistenceServiceServicer_to_server(PersistenceServiceServicer(), server)
+        
+        port = 50052
+        server.add_insecure_port(f"[::]:{port}")
+        server.start()
+        logger.info(f"Persistence Service started on port {port}")
+        server.wait_for_termination()
+    except Exception as e:
+        logger.error(f"Error starting Persistence Service: {e}")
+    finally:
+        if os.path.exists(LOCK_FILE):
+            os.remove(LOCK_FILE)
 
 if __name__ == '__main__':
     serve()

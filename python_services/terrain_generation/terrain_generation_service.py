@@ -2,18 +2,19 @@ import logging
 import grpc
 from concurrent import futures
 from timeit import default_timer as timer
-from persistence.persistence_pb2 import (
-    TerrainTile,
-    StoreTerrainRequest,
-    StoreTerrainResponse,
-)
+from persistence.persistence_pb2 import TerrainTile, StoreTerrainRequest
 from persistence.persistence_pb2_grpc import PersistenceServiceStub
 import terrain_generation.terrain_generation_pb2 as terrain_generation_pb2
 import terrain_generation.terrain_generation_pb2_grpc as terrain_generation_pb2_grpc
+import random
+import math
+import noise
+import socket
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("TerrainGeneratorService")
 
 
 class TerrainGeneratorService(
@@ -39,15 +40,140 @@ class TerrainGeneratorService(
         @return A TerrainResponse containing the generated terrain tiles.
         """
         start_time = timer()
+        logger.info(
+            "GenerateTerrain called with total_land_hexagons: %d, persist: %s",
+            request.total_land_hexagons,
+            request.persist,
+        )
         try:
             total_land_hexagons = request.total_land_hexagons
+            # generate an error if the total_land_hexagons is less than 1
+            if total_land_hexagons < 1:
+                raise ValueError("total_land_hexagons must be greater than 0")
             persist = request.persist
 
-            # Generate terrain tiles (dummy implementation)
-            tiles = [
-                terrain_generation_pb2.TerrainTile(x=i, y=i, terrain_type="land")
-                for i in range(total_land_hexagons)
-            ]
+            terrain_types = ["mountain", "hills", "forest", "plains", "desert", "lake"]
+            terrain_weights = {
+                "mountain": {
+                    "mountain": 0.4,
+                    "hills": 0.3,
+                    "forest": 0.1,
+                    "plains": 0.1,
+                    "desert": 0.1,
+                    "lake": 0.0,
+                },
+                "hills": {
+                    "mountain": 0.3,
+                    "hills": 0.3,
+                    "forest": 0.2,
+                    "plains": 0.1,
+                    "desert": 0.1,
+                    "lake": 0.0,
+                },
+                "forest": {
+                    "mountain": 0.1,
+                    "hills": 0.2,
+                    "forest": 0.4,
+                    "plains": 0.2,
+                    "desert": 0.0,
+                    "lake": 0.1,
+                },
+                "plains": {
+                    "mountain": 0.1,
+                    "hills": 0.1,
+                    "forest": 0.2,
+                    "plains": 0.4,
+                    "desert": 0.1,
+                    "lake": 0.1,
+                },
+                "desert": {
+                    "mountain": 0.1,
+                    "hills": 0.1,
+                    "forest": 0.0,
+                    "plains": 0.1,
+                    "desert": 0.6,
+                    "lake": 0.1,
+                },
+                "lake": {
+                    "mountain": 0.0,
+                    "hills": 0.0,
+                    "forest": 0.1,
+                    "plains": 0.1,
+                    "desert": 0.1,
+                    "lake": 0.7,
+                },
+            }
+
+            def choose_terrain_type(neighbors):
+                if not neighbors:
+                    return random.choice(terrain_types)
+                neighbor_types = [tile.terrain_type for tile in neighbors]
+                weights = {
+                    terrain: sum(
+                        terrain_weights[neighbor].get(terrain, 0)
+                        for neighbor in neighbor_types
+                    )
+                    for terrain in terrain_types
+                }
+                total_weight = sum(weights.values())
+                if total_weight == 0:
+                    return random.choice(terrain_types)
+                return random.choices(
+                    list(weights.keys()), weights=list(weights.values()), k=1
+                )[0]
+
+            def generate_island():
+                tiles = []
+                visited = set()
+                queue = [(0, 0)]
+                while queue and len(tiles) < total_land_hexagons:
+                    x, y = queue.pop(0)
+                    if (x, y) in visited:
+                        continue
+                    visited.add((x, y))
+                    nx = x * scale
+                    ny = y * scale
+                    elevation = noise.pnoise2(nx, ny)
+                    neighbors = [
+                        tile
+                        for tile in tiles
+                        if (tile.x, tile.y)
+                        in [
+                            (x + 1, y),
+                            (x - 1, y),
+                            (x, y + 1),
+                            (x, y - 1),
+                            (x + 1, y - 1),
+                            (x - 1, y + 1),
+                        ]
+                    ]
+                    terrain_type = choose_terrain_type(neighbors)
+                    tiles.append(
+                        terrain_generation_pb2.TerrainTile(
+                            x=x, y=y, terrain_type=terrain_type
+                        )
+                    )
+                    # Add neighboring hexes to the queue
+                    neighbors_coords = [
+                        (x + 1, y),
+                        (x - 1, y),
+                        (x, y + 1),
+                        (x, y - 1),
+                        (x + 1, y - 1),
+                        (x - 1, y + 1),
+                    ]
+                    queue.extend(neighbors_coords)
+                return tiles
+
+            # Generate terrain tiles using a flood fill algorithm to ensure contiguity
+            radius = math.ceil(math.sqrt(total_land_hexagons / math.pi))
+            scale = 0.1
+            tiles = generate_island()
+
+            # Retry if not enough tiles are generated
+            while len(tiles) < total_land_hexagons:
+                logger.warning("Not enough tiles generated, retrying...")
+                tiles = generate_island()
 
             terrain_id = ""
             if persist:
@@ -60,11 +186,13 @@ class TerrainGeneratorService(
                 )
                 store_response = self.persistence_stub.StoreTerrain(store_request)
                 terrain_id = store_response.terrain_id
-
+            # log all the generated tiles
+            for tile in tiles:
+                logger.info(f"Generated tile: {tile.x}, {tile.y}, {tile.terrain_type}")
             response = terrain_generation_pb2.TerrainResponse(
                 tiles=tiles, terrain_id=terrain_id
             )
-            logger.info("Generated terrain with %d tiles", total_land_hexagons)
+            logger.info("Generated terrain with %d tiles", len(tiles))
             return response
         except Exception as e:
             logger.error("Error generating terrain: %s", str(e))
@@ -76,15 +204,33 @@ class TerrainGeneratorService(
             logger.info("GenerateTerrain invocation took %f seconds", duration)
 
 
+LOCK_FILE = "/tmp/terrain_generation_service.lock"
+
+
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    terrain_generation_pb2_grpc.add_TerrainGenerationServiceServicer_to_server(
-        TerrainGeneratorService(), server
-    )
-    server.add_insecure_port("[::]:50051")
-    server.start()
-    logger.info("TerrainGeneratorService started, listening on port 50051")
-    server.wait_for_termination()
+    if os.path.exists(LOCK_FILE):
+        logger.error("Terrain Generation Service is already running.")
+        return
+
+    with open(LOCK_FILE, "w") as lock_file:
+        lock_file.write(str(os.getpid()))
+
+    try:
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        terrain_generation_pb2_grpc.add_TerrainGenerationServiceServicer_to_server(
+            TerrainGeneratorService(), server
+        )
+
+        port = 50051
+        server.add_insecure_port(f"[::]:{port}")
+        server.start()
+        logger.info(f"Terrain Generation Service started on port {port}")
+        server.wait_for_termination()
+    except Exception as e:
+        logger.error(f"Error starting Terrain Generation Service: {e}")
+    finally:
+        if os.path.exists(LOCK_FILE):
+            os.remove(LOCK_FILE)
 
 
 if __name__ == "__main__":
