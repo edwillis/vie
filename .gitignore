@@ -7,6 +7,9 @@
 /Testing/
 /cmake_install.cmake
 
+# Ignore pid file
+service_pids.txt
+
 # Ignore vscode files
 /.vscode/
 

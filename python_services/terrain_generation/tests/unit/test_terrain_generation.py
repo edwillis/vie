@@ -6,8 +6,6 @@ from black import format_file_in_place, FileMode, WriteBack
 from terrain_generation.terrain_generation_service import TerrainGeneratorService
 from terrain_generation.terrain_generation_pb2 import TerrainRequest, TerrainResponse, TerrainTile
 
-# @TODO add tests for negative hex requests, small requests and large requests and fix the lake on edge
-
 def test_generate_terrain():
     service = TerrainGeneratorService()
     request = TerrainRequest(total_land_hexagons=5, persist=0)
@@ -17,10 +15,9 @@ def test_generate_terrain():
 
     assert isinstance(response, TerrainResponse)
     assert len(response.tiles) == 5
-    for i, tile in enumerate(response.tiles):
-        assert tile.x == i
-        assert tile.y == i
-        assert tile.terrain_type == "land"
+    # test that the tiles' terrain type is one of the valid terrain types
+    for tile in response.tiles:
+        assert tile.terrain_type in ["mountain", "hills","forest", "plains", "desert", "lake"]
 
 def test_generate_terrain_logging_and_timing():
     service = TerrainGeneratorService()
@@ -36,7 +33,7 @@ def test_generate_terrain_logging_and_timing():
 
 def test_generate_terrain_error_handling():
     service = TerrainGeneratorService()
-    request = TerrainRequest(total_land_hexagons=5)
+    request = TerrainRequest(total_land_hexagons=5, persist=0)
     context = MagicMock()
 
     with patch('terrain_generation.terrain_generation_service.terrain_generation_pb2.TerrainTile', side_effect=Exception("Test error")), \
@@ -55,44 +52,36 @@ def test_terrain_generation():
     """
     width = 10
     height = 15
-    request = TerrainRequest(total_land_hexagons=width * height)
+    request = TerrainRequest(total_land_hexagons=width * height, persist=0)
     context = Mock()
     response = TerrainGeneratorService().GenerateTerrain(request, context)
     assert len(response.tiles) == width * height
 
 
-def is_on_perimeter(x, y, width, height):
-    """
-    Check if the hex at coordinates (x, y) is on the perimeter of the grid.
-    
-    A hex is considered on the perimeter if it is on the edge of the grid.
-    
-    @param x: X-coordinate of the hex
-    @param y: Y-coordinate of the hex
-    @param width: Width of the grid
-    @param height: Height of the grid
-    @return: True if the hex is on the perimeter, False otherwise
-    """
-    return x == 0 or y == 0 or x == width - 1 or y == height - 1
-
-
-def test_no_lake_on_perimeter():
-    """
-    Test that the generated terrain does not have lake hexes on the perimeter.
-    """
+# test that generated terrain hexes form one shape with no discontinuities
+def test_terrain_generation_shape():
     width = 10
     height = 15
-    request = TerrainRequest(total_land_hexagons=width * height)
+    request = TerrainRequest(total_land_hexagons=width * height, persist=0)
     context = Mock()
     response = TerrainGeneratorService().GenerateTerrain(request, context)
-    
-    # Convert response tiles to a dictionary for easier checking
-    terrain = {(tile.x, tile.y): tile.terrain_type for tile in response.tiles}
-    
-    # Iterate over all hexes in the generated terrain
-    for (x, y), terrain_type in terrain.items():
-        if is_on_perimeter(x, y, width, height):
-            assert terrain_type != "Lake", f"Lake found on the perimeter at ({x}, {y})"
+    tiles = response.tiles
+
+    # check that the generated terrain hexes form one shape with no discontinuities
+    for tile in tiles:
+        x = tile.x
+        y = tile.y
+        neighbors = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1), (x + 1, y - 1), (x - 1, y + 1)]
+        assert any(neighbor in [(t.x, t.y) for t in tiles] for neighbor in neighbors)
+
+
+# test that invalid inputs returns an error
+def test_terrain_generation_invalid_input():
+    request = TerrainRequest(total_land_hexagons=-1, persist=0)
+    context = Mock()
+    response = TerrainGeneratorService().GenerateTerrain(request, context)
+    assert context.set_code.called
+    assert context.set_details.called
 
 
 def test_black_formatting():
