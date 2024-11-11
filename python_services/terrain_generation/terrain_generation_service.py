@@ -224,7 +224,9 @@ def serve():
 
         # Enable reflection
         SERVICE_NAMES = (
-            terrain_generation_pb2.DESCRIPTOR.services_by_name['TerrainGenerationService'].full_name,
+            terrain_generation_pb2.DESCRIPTOR.services_by_name[
+                "TerrainGenerationService"
+            ].full_name,
             reflection.SERVICE_NAME,
         )
         reflection.enable_server_reflection(SERVICE_NAMES, server)
