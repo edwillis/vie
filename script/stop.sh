@@ -31,4 +31,9 @@ done < service_pids.txt
 # Remove the PID file
 rm service_pids.txt
 
+# Stop Envoy container
+echo "Stopping Envoy..."
+docker stop envoy
+docker rm envoy
+
 echo "All services terminated."

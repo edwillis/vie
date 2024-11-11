@@ -92,9 +92,9 @@ def display_terrain(terrain_tiles):
 
 def run():
     """
-    Connect to the gRPC service and request terrain generation.
+    Connect to the gRPC service via Envoy gRPC-Web Gateway and request terrain generation.
     """
-    with grpc.insecure_channel('localhost:50051') as channel:
+    with grpc.insecure_channel('localhost:8080') as channel:  # Connect to Envoy gRPC-Web Gateway
         stub = terrain_generation_pb2_grpc.TerrainGenerationServiceStub(channel)
         request = terrain_generation_pb2.TerrainRequest(total_land_hexagons=250)
         response = stub.GenerateTerrain(request)
@@ -102,3 +102,4 @@ def run():
 
 if __name__ == "__main__":
     run()
+

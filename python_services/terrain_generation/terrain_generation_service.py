@@ -11,6 +11,7 @@ import math
 import noise
 import socket
 import os
+from grpc_reflection.v1alpha import reflection
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -220,6 +221,13 @@ def serve():
         terrain_generation_pb2_grpc.add_TerrainGenerationServiceServicer_to_server(
             TerrainGeneratorService(), server
         )
+
+        # Enable reflection
+        SERVICE_NAMES = (
+            terrain_generation_pb2.DESCRIPTOR.services_by_name['TerrainGenerationService'].full_name,
+            reflection.SERVICE_NAME,
+        )
+        reflection.enable_server_reflection(SERVICE_NAMES, server)
 
         port = 50051
         server.add_insecure_port(f"[::]:{port}")
