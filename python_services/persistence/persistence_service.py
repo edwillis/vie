@@ -11,10 +11,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import persistence.persistence_pb2 as persistence_pb2
 import persistence.persistence_pb2_grpc as persistence_pb2_grpc
+from grpc_reflection.v1alpha import reflection
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("PersistenceService")
+logger = logging.getLogger(__name__)
 
 # SQLAlchemy setup
 Base = declarative_base()
@@ -31,7 +32,7 @@ class TerrainTile(Base):
 
 Base.metadata.create_all(engine)
 
-class PersistenceServiceServicer(persistence_pb2_grpc.PersistenceServiceServicer):
+class PersistenceService(persistence_pb2_grpc.PersistenceServiceServicer):
     def __init__(self):
         self.lock = threading.Lock()
 
@@ -81,8 +82,15 @@ def serve():
 
     try:
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        persistence_pb2_grpc.add_PersistenceServiceServicer_to_server(PersistenceServiceServicer(), server)
+        persistence_pb2_grpc.add_PersistenceServiceServicer_to_server(PersistenceService(), server)
         
+        # Enable reflection
+        SERVICE_NAMES = (
+            persistence_pb2.DESCRIPTOR.services_by_name['PersistenceService'].full_name,
+            reflection.SERVICE_NAME,
+        )
+        reflection.enable_server_reflection(SERVICE_NAMES, server)
+
         port = 50052
         server.add_insecure_port(f"[::]:{port}")
         server.start()

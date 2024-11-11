@@ -3,7 +3,7 @@ import grpc
 from concurrent import futures
 from persistence.persistence_pb2 import TerrainTile, StoreTerrainRequest, RetrieveTerrainRequest
 from persistence.persistence_pb2_grpc import PersistenceServiceStub, add_PersistenceServiceServicer_to_server
-from persistence.persistence_service import PersistenceServiceServicer
+from persistence.persistence_service import PersistenceService
 
 @pytest.fixture(scope='module')
 def grpc_add_to_server():
@@ -11,7 +11,7 @@ def grpc_add_to_server():
 
 @pytest.fixture(scope='module')
 def grpc_servicer():
-    return PersistenceServiceServicer()
+    return PersistenceService()
 
 @pytest.fixture(scope='module')
 def grpc_server(grpc_add_to_server, grpc_servicer):

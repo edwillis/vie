@@ -14,10 +14,10 @@ enable_testing()
 
 # Protobuf and gRPC generation for Python persistence service
 add_custom_command(
-    OUTPUT ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_service_pb2.py
-           ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_service_pb2_grpc.py
+    OUTPUT ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_pb2.py
+           ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_pb2_grpc.py
     COMMAND Python3::Interpreter -m grpc_tools.protoc
-            -I /home/ewillis/vie/python_services/protos
+            -I ${CMAKE_SOURCE_DIR}/python_services/protos
             --python_out=${CMAKE_SOURCE_DIR}/python_services
             --grpc_python_out=${CMAKE_SOURCE_DIR}/python_services 
             persistence/persistence.proto
@@ -27,10 +27,10 @@ add_custom_command(
 
 # Protobuf and gRPC generation for Python terrain generation service
 add_custom_command(
-    OUTPUT ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_service_pb2.py
-           ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_service_pb2_grpc.py
+    OUTPUT ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2.py
+           ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2_grpc.py
     COMMAND Python3::Interpreter -m grpc_tools.protoc
-            -I /home/ewillis/vie/python_services/protos
+            -I ${CMAKE_SOURCE_DIR}/python_services/protos
             --python_out=${CMAKE_SOURCE_DIR}/python_services
             --grpc_python_out=${CMAKE_SOURCE_DIR}/python_services
             terrain_generation/terrain_generation.proto
@@ -38,14 +38,12 @@ add_custom_command(
     COMMENT "Generating gRPC and Protobuf code for Python Terrain Generation Service"
 )
 
-
 # Add custom target to generate protobufs
 add_custom_target(generate_protos ALL
-                  DEPENDS ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_service_pb2.py
-                          ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_service_pb2_grpc.py
-                          ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_service_pb2_grpc.py
-                          ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_service_pb2_grpc.py)
-
+                  DEPENDS ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_pb2.py
+                          ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_pb2_grpc.py
+                          ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2.py
+                          ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2_grpc.py)
 
 # Add custom target to recreate the .copilot-instructions.txt file
 add_custom_target(copilot-context
@@ -53,15 +51,12 @@ add_custom_target(copilot-context
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   COMMENT "Recreating .copilot-*.txt files")
 
-
 # Add custom target to generate Doxygen documentation
 find_package(Doxygen REQUIRED)
 if(DOXYGEN_FOUND)
     set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/Doxyfile)
     set(DOXYGEN_OUT ${CMAKE_BINARY_DIR}/Doxyfile)
-
     configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-
     add_custom_target(docs
                       COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -80,12 +75,7 @@ add_test(NAME PythonUnitTests
          COMMAND pytest -v ${CMAKE_SOURCE_DIR}/python_services/
          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python_services/)
 
-#add_test(NAME PythonClientTests
-#         COMMAND pytest ${CMAKE_SOURCE_DIR}/python_services/test/client
-#         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python_services/test/client)
-
 # Add custom target to run all tests
 add_custom_target(run_tests
                   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-                  DEPENDS PythonUnitTests 
-                 )
+                  DEPENDS PythonUnitTests)
