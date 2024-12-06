@@ -1,39 +1,16 @@
 #!/bin/bash
 
-# Check for lock files under /tmp
-lock_files=$(ls /tmp | grep -E '.lock*')
-if [ -n "$lock_files" ]; then
-  echo "Lock files found: $lock_files"
-  
-  # Look for any python3 processes running scripts from the python_services directory and terminate them
-  pids=$(pgrep -f "python3 .*python_services")
-  if [ -n "$pids" ]; then
-    echo "Terminating python3 processes running scripts from python_services..."
-    echo "$pids" | xargs kill
-  fi
-  # delete the lock files
-  echo "Deleting lock files..."
-  rm /tmp/*.lock
-fi
+# Stop Envoy
+pkill -f envoy
+#pkill nginx
 
-# Check if the PID file exists
-if [ ! -f service_pids.txt ]; then
-  echo "No services are currently running."
-  exit 1
-fi
+# Stop JavaScript Services
+cd javascript_services/vie_ui || { echo "Failed to navigate to vie_ui directory"; exit 1; }
+npm stop
 
-# Read the PIDs from the file and terminate the processes
-while read -r PID; do
-  echo "Terminating process with PID $PID..."
-  kill $PID
-done < service_pids.txt
+# Stop Python Services
+pkill -f terrain_generation_service.py
+pkill -f persistence_service.py
+rm /tmp/*.lock
 
-# Remove the PID file
-rm service_pids.txt
-
-# Stop Envoy container
-echo "Stopping Envoy..."
-docker stop envoy
-docker rm envoy
-
-echo "All services terminated."
+echo "gateway and Python services stopped."

@@ -1,33 +1,20 @@
 #!/bin/bash
 
-# Start the Terrain Generation Service if its lock file is not present
-if [ -f "/tmp/terrain_generation_service.lock" ]; then
-    echo "Terrain Generation Service is already running."
-    exit 1
-fi
-echo "Starting Terrain Generation Service..."
-python3 python_services/terrain_generation/terrain_generation_service.py &
-TERRAIN_GEN_PID=$!
+# Get the directory where the script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Start the Persistence Service if its lock file is not present
-if [ -f "/tmp/persistence_service.lock" ]; then
-    echo "Persistence Service is already running."
-    exit 1
-fi
-echo "Starting Persistence Service..."
-python3 python_services/persistence/persistence_service.py &
-PERSISTENCE_PID=$!
+# Start Nginx with the configuration in ./config/nginx.conf
+#nohup nginx -c "$SCRIPT_DIR/../config/nginx.conf" -p "$SCRIPT_DIR/../" > "$SCRIPT_DIR/../nginx.log" 2>&1 &
 
-# Save the PIDs to a file for later termination
-echo $TERRAIN_GEN_PID > service_pids.txt
-echo $PERSISTENCE_PID >> service_pids.txt
+# Start Envoy with the configuration in ./config/envoy.yaml without root privileges
+nohup envoy -c "$SCRIPT_DIR/../config/envoy.yaml" --log-level info > "$SCRIPT_DIR/../envoy.log" 2>&1 &
 
-# Start Envoy proxy
-echo "Starting Envoy..."
-docker run -d --network host --name envoy -v $(pwd)/config/envoy.yaml:/etc/envoy/envoy.yaml -p 8080:8080 envoyproxy/envoy:v1.18.3 -c /etc/envoy/envoy.yaml
+# Start Python Services in the background
+nohup python3 "$SCRIPT_DIR/../python_services/terrain_generation/terrain_generation_service.py" > "$SCRIPT_DIR/../terrain_gen_service.log" 2>&1 &
+nohup python3 "$SCRIPT_DIR/../python_services/persistence_service.py" > "$SCRIPT_DIR/../persistence_service.log" 2>&1 &
 
-# Wait for the services to exit
-wait $TERRAIN_GEN_PID
-wait $PERSISTENCE_PID
+# Navigate to the React app directory and start the React app
+cd "$SCRIPT_DIR/../javascript_services/vie_ui/" || { echo "Failed to navigate to vie_ui directory"; exit 1; }
+nohup npm start > "$SCRIPT_DIR/../javascript_services/vie_ui/vie_ui.log" 2>&1 &
 
-echo "All services started."
+echo "Nginx, Python services, and React app 'vie_ui' started."
