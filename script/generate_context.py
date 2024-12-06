@@ -19,7 +19,7 @@ buffer.append("Project Directory Structure:\n")
 def compute_project_structure(line_buffer, root="."):
 	for dirpath, dirnames, filenames in os.walk(root):
 		# Exclude build, .venv, and __pycache__ directories
-		dirnames[:] = [d for d in dirnames if d not in [".vscode", ".pytest_cache", 'build', '.venv', '__pycache__']]
+		dirnames[:] = [d for d in dirnames if d not in [".vscode", ".pytest_cache", 'build', '.venv', '__pycache__', '.git', '.coverage', 'docs']]
 		for filename in filenames:
 			# append the path but add a newline at the end
 			line_buffer.append(os.path.relpath(os.path.join(dirpath, filename), root) + '\n')

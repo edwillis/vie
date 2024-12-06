@@ -10,6 +10,9 @@
 # Ignore pid file
 service_pids.txt
 
+# Ignore scripts that have my token
+script/issue_importer.py
+
 # Ignore vscode files
 /.vscode/
 
@@ -52,6 +55,7 @@ python_services/persistence/persistence_pb2.py
 python_services/persistence/persistence_pb2_grpc.py
 python_services/terrain_generation/terrain_generation_pb2.py
 python_services/terrain_generation/terrain_generation_pb2_grpc.py
+javascript_services/vie_ui/src/protos/
 
 # Ignore generated context files
 .copilot-*.txt
@@ -63,3 +67,24 @@ docs/html/
 # Ignore other temporary files
 *.DS_Store
 *.~lock.*
+
+# Ignore Node.js modules and build artifacts for the React app
+javascript_services/vie_ui/node_modules/
+javascript_services/vie_ui/build/
+javascript_services/vie_ui/.cache/
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore package lock files
+package-lock.json
+yarn.lock
+
+# Ignore coverage reports from Jest
+javascript_services/vie_ui/coverage/
+
+# Ignore debug log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
