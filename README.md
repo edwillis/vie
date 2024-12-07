@@ -10,6 +10,5 @@ The set of intended personas whose needs & desires the features of Vie address a
 - Social hardcore gamers
 - Technical strategists
 - Role-players
-- Modders
 - Developers
 - DevOps
