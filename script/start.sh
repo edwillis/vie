@@ -3,18 +3,24 @@
 # Get the directory where the script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Start Nginx with the configuration in ./config/nginx.conf
-#nohup nginx -c "$SCRIPT_DIR/../config/nginx.conf" -p "$SCRIPT_DIR/../" > "$SCRIPT_DIR/../nginx.log" 2>&1 &
+# Create the 'logs' directory in the project root if it doesn't exist
+mkdir -p "$SCRIPT_DIR/../logs"  # Ensures the 'logs' directory exists for storing log files
 
-# Start Envoy with the configuration in ./config/envoy.yaml without root privileges
-nohup envoy -c "$SCRIPT_DIR/../config/envoy.yaml" --log-level info > "$SCRIPT_DIR/../envoy.log" 2>&1 &
+# Generate a timestamp for the log file name in the format YYYY-MM-DD_HH-MM-SS
+TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")  # Generates a timestamp to uniquely name the log file
 
-# Start Python Services in the background
-nohup python3 "$SCRIPT_DIR/../python_services/terrain_generation/terrain_generation_service.py" > "$SCRIPT_DIR/../terrain_gen_service.log" 2>&1 &
-nohup python3 "$SCRIPT_DIR/../python_services/persistence_service.py" > "$SCRIPT_DIR/../persistence_service.log" 2>&1 &
+# Define the log file path using the generated timestamp
+LOG_FILE="$SCRIPT_DIR/../logs/$TIMESTAMP.log"  # Sets the log file path in the 'logs' directory
 
-# Navigate to the React app directory and start the React app
+# Start Envoy with the configuration in ./config/envoy.yaml and redirect logs to the log file
+envoy -c "$SCRIPT_DIR/../config/envoy.yaml" --log-level info >> "$LOG_FILE" 2>&1 &  # Starts Envoy and redirects both stdout and stderr to the log file
+
+# Start Python Services in the background and redirect logs to the same log file
+python3 "$SCRIPT_DIR/../python_services/terrain_generation/terrain_generation_service.py" >> "$LOG_FILE" 2>&1 &  # Starts Terrain Generation Service and appends logs to the log file
+python3 "$SCRIPT_DIR/../python_services/persistence_service.py" >> "$LOG_FILE" 2>&1 &  # Starts Persistence Service and appends logs to the log file
+
+# Navigate to the React app directory and start the React app without redirecting logs
 cd "$SCRIPT_DIR/../javascript_services/vie_ui/" || { echo "Failed to navigate to vie_ui directory"; exit 1; }
-nohup npm start > "$SCRIPT_DIR/../javascript_services/vie_ui/vie_ui.log" 2>&1 &
+npm start &  # Starts the React app in the background and logs are emitted to stdout
 
-echo "Nginx, Python services, and React app 'vie_ui' started."
+echo "Envoy, Python services, and React app 'vie_ui' started."  # Confirms that all services have been started
