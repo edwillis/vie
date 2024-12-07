@@ -12,10 +12,10 @@ import noise
 import socket
 import os
 from grpc_reflection.v1alpha import reflection
+from python_services.common.logging_config import setup_logger
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("TerrainGeneratorService")
+# Configure logging using the common logging configuration
+logger = setup_logger("TerrainGeneratorService")
 
 
 class TerrainGeneratorService(
@@ -30,6 +30,7 @@ class TerrainGeneratorService(
         @brief Initializes the TerrainGeneratorService.
         """
         self.persistence_stub = None
+        logger.info("TerrainGeneratorService initialized.")
 
     def GenerateTerrain(self, request, context):
         """
@@ -40,12 +41,10 @@ class TerrainGeneratorService(
 
         @return A TerrainResponse containing the generated terrain tiles.
         """
-        start_time = timer()
-        logger.info(
-            "GenerateTerrain called with total_land_hexagons: %d, persist: %s",
-            request.total_land_hexagons,
-            request.persist,
-        )
+        import time
+        start_time = time.time()
+        logger.debug("GenerateTerrain invocation started.")
+        
         try:
             total_land_hexagons = request.total_land_hexagons
             # generate an error if the total_land_hexagons is less than 1
@@ -194,10 +193,13 @@ class TerrainGeneratorService(
                 tiles=tiles, terrain_id=terrain_id
             )
             logger.info("Generated terrain with %d tiles", len(tiles))
+            logger.info("Terrain generated successfully.")
+            duration = time.time() - start_time
+            logger.info(f"GenerateTerrain completed in {duration:.2f} seconds.")
             return response
         except Exception as e:
-            logger.error("Error generating terrain: %s", str(e))
-            context.set_details(str(e))
+            logger.error(f"Error during terrain generation: {e}")
+            context.set_details('Failed to generate terrain.')
             context.set_code(grpc.StatusCode.INTERNAL)
             return terrain_generation_pb2.TerrainResponse()
         finally:

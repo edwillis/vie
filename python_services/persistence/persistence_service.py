@@ -12,10 +12,10 @@ from sqlalchemy.orm import sessionmaker
 import persistence.persistence_pb2 as persistence_pb2
 import persistence.persistence_pb2_grpc as persistence_pb2_grpc
 from grpc_reflection.v1alpha import reflection
+from python_services.common.logging_config import setup_logger
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure logging using the common logging configuration
+logger = setup_logger("PersistenceService")
 
 # SQLAlchemy setup
 Base = declarative_base()
@@ -33,7 +33,17 @@ class TerrainTile(Base):
 Base.metadata.create_all(engine)
 
 class PersistenceService(persistence_pb2_grpc.PersistenceServiceServicer):
+    """
+    @brief Service for persisting data.
+    """
+
     def __init__(self):
+        """
+        @brief Initializes the PersistenceService.
+        """
+        self.engine = create_engine('sqlite:///persistence_service.db')
+        self.Session = sessionmaker(bind=self.engine)
+        logger.info("PersistenceService initialized.")
         self.lock = threading.Lock()
 
     def StoreTerrain(self, request, context):
@@ -69,6 +79,38 @@ class PersistenceService(persistence_pb2_grpc.PersistenceServiceServicer):
             duration = time.time() - start_time
             logger.info(f"RetrieveTerrain invocation duration: {duration:.2f} seconds")
             return response
+
+    def SaveData(self, request, context):
+        """
+        @brief Saves data to the persistence layer.
+        
+        @param request The data to save.
+        @param context The gRPC context.
+        @return The save data response.
+        
+        @exception context with appropriate HTTP response code on failure.
+        """
+        import time
+        start_time = time.time()
+        logger.debug("SaveData invocation started.")
+        
+        try:
+            session = self.Session()
+            # Data persistence logic
+            # ...
+            session.commit()
+            logger.info("Data saved successfully.")
+            duration = time.time() - start_time
+            logger.info(f"SaveData completed in {duration:.2f} seconds.")
+            return persistence_pb2.SaveDataResponse(/* ... */)
+        except Exception as e:
+            logger.error(f"Error during data persistence: {e}")
+            session.rollback()
+            context.set_details('Failed to save data.')
+            context.set_code(grpc.StatusCode.INTERNAL)
+            return persistence_pb2.SaveDataResponse()
+        finally:
+            session.close()
 
 LOCK_FILE = "/tmp/persistence_service.lock"
 

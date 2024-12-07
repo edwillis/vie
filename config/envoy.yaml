@@ -1,5 +1,6 @@
 admin:
-  access_log_path: /tmp/admin_access.log
+  # Redirect admin access logs to stdout instead of a file
+  access_log_path: /dev/stdout
 
 static_resources:
   listeners:
@@ -42,6 +43,12 @@ static_resources:
                 - name: envoy.filters.http.router
                   typed_config:
                     "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+              access_log:
+                - name: envoy.access_loggers.stdout  # Emits access logs to stdout
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog  # Specifies the logger type as stdout
+                    log_format:
+                      text_format: "%START_TIME% - Envoy - INFO - \"%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\" Resp Code %RESPONSE_CODE% Resp Flags %RESPONSE_FLAGS% Bytes Recv %BYTES_RECEIVED% Bytes Sent %BYTES_SENT% Duration %DURATION%\n"  # Correct placeholders for dynamic values
   clusters:
     - name: terrain_generation_service
       connect_timeout: 0.25s
