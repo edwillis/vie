@@ -2861,3 +2861,31 @@ MSCGEN_TOOL            =
 # command).
 
 MSCFILE_DIRS           =
+
+# Enable the generation of a test list page
+GENERATE_TESTLIST     = YES
+
+# Set the level of detail for test list items
+TEST_LIST_ITEMS_LEVEL = 3
+
+# Ensure that all relevant file types are included for parsing
+FILE_PATTERNS        += *.py \
+                       *.js
+
+# Enable source browsing for tests
+SOURCE_BROWSER        = YES
+VERBATIM_HEADERS      = YES
+
+# Ensure all directories with tests are included
+INPUT                += ${CMAKE_SOURCE_DIR}/python_services/tests \
+                       ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/tests \
+                       ${CMAKE_SOURCE_DIR}/python_services/persistence/tests \
+                       ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src
+
+# Recursively process directories
+RECURSIVE            = YES
+
+# Extract all documentation, including private members and static methods
+EXTRACT_ALL          = YES
+EXTRACT_PRIVATE      = YES
+EXTRACT_STATIC       = YES

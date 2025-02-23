@@ -1,0 +1,51 @@
+Design Standards for Interacting with LLMs
+
+Here's a product concept statement:
+
+"""
+<Provide a one paragraph or so describing the product>
+"""
+
+It is intended to appeal to these user personas:
+
+"""
+<provide a list of personas along with any explanatory text to help the LLM understand what each is>
+"""
+
+Here is the complete product backlog for the project:
+
+"""
+<provide a list of stories that comprise the product backlog>
+"""
+
+We will use a "set-based design" approach.  You will provide a set of proposals for us to consider.  Each proposal will include a high-level architectural treatment as well as a detailed design and will show how key stories will be realized in each proposal.  
+
+The criteria which will be used to evaluate the proposal against one another are:
+
+"""
+<Provide a set of criteria to use when evaluating designs against one another - for example:
+"""
+
+"This is a game so runtime performance will matter quite a lot to user satisfaction
+Scalability matters but perhaps not immediately
+The speed and effort with which the architecture can be implemented matters most of all">
+
+"""
+<If there are known architectural or design constraints that all proposal must adopt, list them here>
+"""
+
+For each proposal you come up with:
+
+Provide an architectural "gist" - a roughly two or three page treatment of the layout of the software.  You can use just a textual description of the proposal or annotate it with UML deployment diagrams, block diagrams, or other diagrams you feel most clarify the architectural proposal (note the diagramming standards below however) but it must be clear how each such proposal differs from the others you propose - and ideally they are fairly different from one another.  
+
+Provide a detailed design proposal.  Drill down enough on each so that it is possible to use the proposal to guide coding work to realize it.  Provide class diagrams that detail the static structure of your proposal.  Provide sequence or collaboration diagrams that show for the below stories how the classes work together to achieve the desired result. Never, under any circumstances, skip any of the provided stories - we need one diagram for each one.  Note that these diagrams must adhere to the diagramming standards belowAim for around five pages per proposal.  Detail how errors are handled and communicated to the user.  Detail how persistence (if applicable) is managed in the proposal, if applicable.  Detail how concurrency is mamaged safely, if applicable.
+
+Product Stories for Use in Sequence/Collaboration Diagrams:
+
+"""
+<choose 5-10 stories that span the desired behaviors and likely components that will implement the solution>
+"""
+
+Diagramming Standards:
+
+Diagrams are specified as text inputs to GraphViz dot and include public and protected methods, arguments on those methods and the types of those arguments, return types and any exceptional behavior. Wherever you add an arrow to a diagram, annotate it with what the arrow means.  In sequence diagrams, when you show an arrow between classes, annotate it with the specific method being invoked.  For all diagrams you create, show the text inputs to dot but also, beneath the text spec, provide a link to the graphviz online site where you pass the text spec along in the link, so I can click the link and see the rendered diagram on that site. 

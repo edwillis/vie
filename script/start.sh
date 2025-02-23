@@ -17,7 +17,7 @@ envoy -c "$SCRIPT_DIR/../config/envoy.yaml" --log-level info >> "$LOG_FILE" 2>&1
 
 # Start Python Services in the background and redirect logs to the same log file
 python3 "$SCRIPT_DIR/../python_services/terrain_generation/terrain_generation_service.py" >> "$LOG_FILE" 2>&1 &  # Starts Terrain Generation Service and appends logs to the log file
-python3 "$SCRIPT_DIR/../python_services/persistence_service.py" >> "$LOG_FILE" 2>&1 &  # Starts Persistence Service and appends logs to the log file
+python3 "$SCRIPT_DIR/../python_services/persistence/persistence_service.py" >> "$LOG_FILE" 2>&1 &  # Starts Persistence Service and appends logs to the log file
 
 # Navigate to the React app directory and start the React app without redirecting logs
 cd "$SCRIPT_DIR/../javascript_services/vie_ui/" || { echo "Failed to navigate to vie_ui directory"; exit 1; }

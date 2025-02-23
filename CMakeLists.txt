@@ -45,13 +45,13 @@ add_custom_target(generate_protos ALL
                           ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2.py
                           ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2_grpc.py)
 
-# Add custom target to recreate the .copilot-instructions.txt file
-add_custom_target(copilot-context
+# Add custom target to recreate the .context file
+add_custom_target(context
                   COMMAND ${CMAKE_COMMAND} -E env python ${CMAKE_SOURCE_DIR}/script/generate_context.py
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                  COMMENT "Recreating .copilot-*.txt files")
+                  COMMENT "Recreating .context files")
 
-# Add custom target to generate Doxygen documentation
+# Add custom target to generate and optionally display Doxygen documentation
 find_package(Doxygen REQUIRED)
 if(DOXYGEN_FOUND)
     set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/Doxyfile)
@@ -61,6 +61,13 @@ if(DOXYGEN_FOUND)
                       COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                       COMMENT "Generating API documentation with Doxygen"
+                      VERBATIM)
+
+    add_custom_target(show_docs
+                      COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+                      COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_SOURCE_DIR}/script/show_docs.sh
+                      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                      COMMENT "Generating and displaying API documentation with Doxygen"
                       VERBATIM)
 endif()
 

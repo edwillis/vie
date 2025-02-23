@@ -58,7 +58,7 @@ python_services/terrain_generation/terrain_generation_pb2_grpc.py
 javascript_services/vie_ui/src/protos/
 
 # Ignore generated context files
-.copilot-*.txt
+.context
 
 # Ignore Doxygen temporary files
 docs/latex/
