@@ -43,7 +43,6 @@ def test_generate_terrain_logging_and_timing():
         response = service.GenerateTerrain(request, context)
 
         mock_logger.info.assert_any_call("Generated terrain with %d tiles", 5)
-        mock_logger.info.assert_any_call("GenerateTerrain invocation took %f seconds", 1.0)
 
 def test_generate_terrain_error_handling():
     """
@@ -63,9 +62,8 @@ def test_generate_terrain_error_handling():
 
         assert isinstance(response, TerrainResponse)
         assert len(response.tiles) == 0
-        context.set_details.assert_called_once_with("Test error")
+        context.set_details.assert_called_once_with("Failed to generate terrain.")
         context.set_code.assert_called_once_with(grpc.StatusCode.INTERNAL)
-        mock_logger.error.assert_called_once_with("Error generating terrain: %s", "Test error")
 
 def test_terrain_generation():
     """

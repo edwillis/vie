@@ -13,7 +13,7 @@ from sqlalchemy.orm import sessionmaker, Session
 import persistence.persistence_pb2 as persistence_pb2
 import persistence.persistence_pb2_grpc as persistence_pb2_grpc
 from grpc_reflection.v1alpha import reflection
-from python_services.common.logging_config import setup_logger
+from common.logging_config import setup_logger
 import json
 
 # Configure logging using the common logging configuration
