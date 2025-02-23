@@ -7,6 +7,13 @@ from terrain_generation.terrain_generation_service import TerrainGeneratorServic
 from terrain_generation.terrain_generation_pb2 import TerrainRequest, TerrainResponse, TerrainTile
 
 def test_generate_terrain():
+    """
+    @test Generate Terrain
+    Tests the basic functionality of terrain generation, ensuring the correct number of tiles are generated.
+    
+    @pre TerrainGeneratorService is initialized
+    @post A TerrainResponse with the expected number of tiles is returned
+    """
     service = TerrainGeneratorService()
     request = TerrainRequest(total_land_hexagons=5, persist=0)
     context = MagicMock()
@@ -20,6 +27,13 @@ def test_generate_terrain():
         assert tile.terrain_type in ["mountain", "hills","forest", "plains", "desert", "lake"]
 
 def test_generate_terrain_logging_and_timing():
+    """
+    @test Generate Terrain Logging and Timing
+    Tests that logging and timing information is correctly recorded during terrain generation.
+    
+    @pre TerrainGeneratorService is initialized
+    @post Logging and timing information is correctly output
+    """
     service = TerrainGeneratorService()
     request = TerrainRequest(total_land_hexagons=5, persist=0)
     context = MagicMock()
@@ -32,6 +46,13 @@ def test_generate_terrain_logging_and_timing():
         mock_logger.info.assert_any_call("GenerateTerrain invocation took %f seconds", 1.0)
 
 def test_generate_terrain_error_handling():
+    """
+    @test Generate Terrain Error Handling
+    Tests the error handling mechanism during terrain generation when an exception is raised.
+    
+    @pre TerrainGeneratorService is initialized
+    @post An error is logged and the appropriate gRPC status code is set
+    """
     service = TerrainGeneratorService()
     request = TerrainRequest(total_land_hexagons=5, persist=0)
     context = MagicMock()
@@ -48,7 +69,11 @@ def test_generate_terrain_error_handling():
 
 def test_terrain_generation():
     """
-    Test the terrain generation function to ensure the output has the correct number of hexagons.
+    @test Terrain Generation
+    Ensures the terrain generation function outputs the correct number of hexagons.
+    
+    @pre TerrainGeneratorService is initialized
+    @post The number of generated tiles matches the requested number
     """
     width = 10
     height = 15
@@ -60,6 +85,13 @@ def test_terrain_generation():
 
 # test that generated terrain hexes form one shape with no discontinuities
 def test_terrain_generation_shape():
+    """
+    @test Terrain Generation Shape
+    Verifies that the generated terrain hexes form a continuous shape with no discontinuities.
+    
+    @pre TerrainGeneratorService is initialized
+    @post All generated tiles are contiguous
+    """
     width = 10
     height = 15
     request = TerrainRequest(total_land_hexagons=width * height, persist=0)
@@ -77,6 +109,13 @@ def test_terrain_generation_shape():
 
 # test that invalid inputs returns an error
 def test_terrain_generation_invalid_input():
+    """
+    @test Terrain Generation Invalid Input
+    Tests that invalid input results in an error being returned.
+    
+    @pre TerrainGeneratorService is initialized
+    @post An error is returned for invalid input
+    """
     request = TerrainRequest(total_land_hexagons=-1, persist=0)
     context = Mock()
     response = TerrainGeneratorService().GenerateTerrain(request, context)
@@ -85,6 +124,13 @@ def test_terrain_generation_invalid_input():
 
 
 def test_black_formatting():
+    """
+    @test Black Formatting
+    Verifies that the terrain generation service code is formatted according to PEP8 standards using Black.
+    
+    @pre terrain_generation_service.py file exists
+    @post Code is properly formatted according to Black's standards
+    """
     from pathlib import Path
     from black import format_file_in_place, FileMode, WriteBack
 

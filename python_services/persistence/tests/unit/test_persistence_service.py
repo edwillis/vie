@@ -33,6 +33,13 @@ def grpc_stub_cls(grpc_channel):
     return PersistenceServiceStub(grpc_channel)
 
 def test_store_terrain(grpc_stub_cls):
+    """
+    @test Store Terrain
+    Tests the functionality of storing terrain tiles using the persistence service.
+    
+    @pre PersistenceServiceStub is initialized
+    @post A valid terrain ID is returned after storing the tiles
+    """
     tiles = [
         TerrainTile(x=1, y=1, terrain_type="Mountain"),
         TerrainTile(x=2, y=2, terrain_type="Forest")
@@ -42,6 +49,13 @@ def test_store_terrain(grpc_stub_cls):
     assert response.terrain_id
 
 def test_retrieve_terrain(grpc_stub_cls):
+    """
+    @test Retrieve Terrain
+    Tests the retrieval of stored terrain tiles using the persistence service.
+    
+    @pre Terrain tiles are stored and a valid terrain ID is available
+    @post The correct number of tiles is retrieved
+    """
     tiles = [
         TerrainTile(x=1, y=1, terrain_type="Mountain"),
         TerrainTile(x=2, y=2, terrain_type="Forest")
@@ -53,6 +67,13 @@ def test_retrieve_terrain(grpc_stub_cls):
     assert len(retrieve_response.tiles) == 2
 
 def test_retrieve_nonexistent_terrain(grpc_stub_cls):
+    """
+    @test Retrieve Nonexistent Terrain
+    Tests the error handling when attempting to retrieve a terrain with a non-existent ID.
+    
+    @pre PersistenceServiceStub is initialized
+    @post An error is raised with the NOT_FOUND status code
+    """
     request = RetrieveTerrainRequest(terrain_id="non-existent-id")
     with pytest.raises(grpc.RpcError) as excinfo:
         grpc_stub_cls.RetrieveTerrain(request)

@@ -1,0 +1,35 @@
+1. service definitions:
+1.1. all services expose their service endpoints via grpc and protobuf
+1.2 all services are stateless with the exception of the persistence_service
+1.2.1 services which need to persist state do so via the persistance_service
+1.3 All errors and exceptions that prevent expected results from being returned from service route invocations are translated to appropriate HTTP response codes annotated with a human readable string describing the error encountered
+1.4 all services emit logs to stdout
+1.5 all service endpoint invocations time the duration of the invocation and emit a log at INFO level showing the duration on completion of the invocation
+
+2. persistence_service definition:
+2.1 the persistence_service is implemented in python and persists its state using sqlite with sqlalchemy as the ORM
+2.2 all endpoints exposed from the persistence_service must be thread_safe
+
+3. Code generation general concerns:
+3.1 All generated code will use doxygen as the source code documentation language
+3.2 All generated code includes source code comments in doxygen describing the purpose of the code, the algorithm used and any other relevant information including all arguments, return values and expected types and all exceptional behavior documented
+3.3 All generated source code emits logs using the following rubric:
+3.3.1 DEBUG: Detailed information for diagnosing problems during development.
+3.3.2 INFO: Confirmation that things are working as expected.
+3.3.3 WARNING: Indication of potential issues that do not immediately affect functionality.
+3.3.4 ERROR: A significant problem that has caused part of the system to fail.
+3.3.5 CRITICAL: A severe issue that requires immediate attention and may cause a system shutdown.
+3.4 cmake is used to ensure that regeneration of GRPC/protobuf code is performed when the proto files change
+3.5 all generated code conforms to the Vie Detailed Design, which is appended to this context
+ 
+4. c++ code generation:
+4.1 unit tests are written using gtest
+4.2 all generated c++ code adheres to Google's C++ Style Guide
+
+5. python code generation:
+5.1 unit tests are written in pytest
+5.2 all generated python code adheres to PEP8
+5.3 all python projects implement a test that uses Black to ensure that generated code satisfies PEP8, automatically fixing the code where possible and returning an error if not
+
+6. Additional cmake details
+6.1 There must be a cmake target "docs" which generates the doxygen in HTML format and stores in in a top-level directory called "docs"

@@ -1,9 +1,11 @@
 import os
-# open .copilot_instructions.txt from the current directory
+import requests
+
+# open .context from the current directory
 # add each line to a buffer in memory
 
 buffer = []
-with open('script/.copilot-instructions.txt', 'r') as file:
+with open('script/context', 'r') as file:
 	buffer = file.readlines()
 
 # Add "Automatically generated context follows:" to the buffer
@@ -19,14 +21,29 @@ buffer.append("Project Directory Structure:\n")
 def compute_project_structure(line_buffer, root="."):
 	for dirpath, dirnames, filenames in os.walk(root):
 		# Exclude build, .venv, and __pycache__ directories
-		dirnames[:] = [d for d in dirnames if d not in [".vscode", ".pytest_cache", 'build', '.venv', '__pycache__', '.git', '.coverage', 'docs']]
+		dirnames[:] = [d for d in dirnames if d not in ["node_modules", ".vscode", ".pytest_cache", 'build', '.venv', '__pycache__', '.git', '.coverage', 'docs', 'logs']]
 		for filename in filenames:
 			# append the path but add a newline at the end
 			line_buffer.append(os.path.relpath(os.path.join(dirpath, filename), root) + '\n')
 
 compute_project_structure(buffer)
-with open('.copilot-instructions.txt', 'w') as file1:
+with open('.context', 'w') as file1:
     file1.writelines(buffer)
-	
-with open('.copilot-test-instructions.txt', 'w') as file2:
-    file2.writelines(buffer)
+
+# URL of the file to retrieve
+url = "https://raw.githubusercontent.com/wiki/edwillis/vie/src/Vie-Detailed-Design.md"
+
+# Retrieve the file contents
+response = requests.get(url)
+file_contents = response.text
+
+buffer.append("Detailed design document follows:\n")
+
+# Append the contents to the buffer
+buffer.append(file_contents)
+
+# Write the updated buffer to the .context file
+if response.status_code == 200:
+	with open('.context', 'w') as file1:
+		file1.writelines(buffer)
+
