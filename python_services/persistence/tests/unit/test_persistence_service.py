@@ -49,5 +49,5 @@ def test_retrieve_nonexistent_terrain(persistence_service):
     @post An error is raised with the NOT_FOUND status code
     """
     request = RetrieveTerrainRequest(terrain_id="non-existent-id")
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(Exception):
         persistence_service.RetrieveTerrain(request, None)
