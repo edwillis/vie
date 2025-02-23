@@ -36,6 +36,7 @@ __pycache__/
 .coverage
 htmlcov/
 .coverage.*
+coverage.*
 
 # Ignore pytest cache
 .pytest_cache/

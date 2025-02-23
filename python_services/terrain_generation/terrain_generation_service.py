@@ -12,7 +12,7 @@ import noise
 import socket
 import os
 from grpc_reflection.v1alpha import reflection
-from python_services.common.logging_config import setup_logger
+from common.logging_config import setup_logger
 
 # Configure logging using the common logging configuration
 logger = setup_logger("TerrainGeneratorService")
@@ -42,9 +42,10 @@ class TerrainGeneratorService(
         @return A TerrainResponse containing the generated terrain tiles.
         """
         import time
+
         start_time = time.time()
         logger.debug("GenerateTerrain invocation started.")
-        
+
         try:
             total_land_hexagons = request.total_land_hexagons
             # generate an error if the total_land_hexagons is less than 1
@@ -199,7 +200,7 @@ class TerrainGeneratorService(
             return response
         except Exception as e:
             logger.error(f"Error during terrain generation: {e}")
-            context.set_details('Failed to generate terrain.')
+            context.set_details("Failed to generate terrain.")
             context.set_code(grpc.StatusCode.INTERNAL)
             return terrain_generation_pb2.TerrainResponse()
         finally:

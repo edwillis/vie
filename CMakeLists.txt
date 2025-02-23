@@ -72,17 +72,7 @@ if(DOXYGEN_FOUND)
 endif()
 
 # Add custom target to run Python unit tests
-add_custom_target(PythonUnitTests
-                  COMMAND pytest -v ${CMAKE_SOURCE_DIR}/python_services/
-                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python_services/
-                  COMMENT "Running Python unit tests")
-
-# Add Python tests
-add_test(NAME PythonUnitTests
-         COMMAND pytest -v ${CMAKE_SOURCE_DIR}/python_services/
-         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python_services/)
-
-# Add custom target to run all tests
 add_custom_target(run_tests
-                  COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-                  DEPENDS PythonUnitTests)
+                  COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_SOURCE_DIR}/python_services pytest --cov=vie/python_services --cov-report=html --cov-report=xml -v ${CMAKE_SOURCE_DIR}/python_services/
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python_services/
+                  COMMENT "Running Python unit tests with coverage")

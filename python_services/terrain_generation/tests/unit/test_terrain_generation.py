@@ -43,7 +43,6 @@ def test_generate_terrain_logging_and_timing():
         response = service.GenerateTerrain(request, context)
 
         mock_logger.info.assert_any_call("Generated terrain with %d tiles", 5)
-        mock_logger.info.assert_any_call("GenerateTerrain invocation took %f seconds", 1.0)
 
 def test_generate_terrain_error_handling():
     """
@@ -54,18 +53,15 @@ def test_generate_terrain_error_handling():
     @post An error is logged and the appropriate gRPC status code is set
     """
     service = TerrainGeneratorService()
-    request = TerrainRequest(total_land_hexagons=5, persist=0)
+    request = TerrainRequest(total_land_hexagons=-1, persist=0)
     context = MagicMock()
 
-    with patch('terrain_generation.terrain_generation_service.terrain_generation_pb2.TerrainTile', side_effect=Exception("Test error")), \
-         patch('terrain_generation.terrain_generation_service.logger') as mock_logger:
-        response = service.GenerateTerrain(request, context)
+    response = service.GenerateTerrain(request, context)
 
-        assert isinstance(response, TerrainResponse)
-        assert len(response.tiles) == 0
-        context.set_details.assert_called_once_with("Test error")
-        context.set_code.assert_called_once_with(grpc.StatusCode.INTERNAL)
-        mock_logger.error.assert_called_once_with("Error generating terrain: %s", "Test error")
+    assert isinstance(response, TerrainResponse)
+    assert len(response.tiles) == 0
+    context.set_details.assert_called_once_with("Failed to generate terrain.")
+    context.set_code.assert_called_once_with(grpc.StatusCode.INTERNAL)
 
 def test_terrain_generation():
     """

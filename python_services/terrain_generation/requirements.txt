@@ -30,4 +30,4 @@ setuptools==75.2.0
 shapely==2.0.6
 six==1.16.0
 tzdata==2024.2
-
+pytest-cov==4.0.0
