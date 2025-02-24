@@ -1,0 +1,32 @@
+name: SonarCloud Analysis
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r python_services/terrain_generation/requirements.txt
+        pip install -r python_services/persistence/requirements.txt
+
+    - name: Run tests with coverage
+      run: |
+        pytest --cov=python_services --cov-report=xml -v python_services/
+
+    - name: Upload coverage to SonarCloud
+      run: |
+        sonar-scanner
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
