@@ -27,7 +27,8 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r python_services/persistence/requirements.txt
+          pip install -r python_services/terrain_generation/requirements.txt
 
       - name: Create build directory
         run: mkdir build
