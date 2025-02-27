@@ -15,11 +15,29 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Install nonpython dependencies
+      run: |
+        apt-get update
+        apt-get install -y libcairo2-dev
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r python_services/terrain_generation/requirements.txt
         pip install -r python_services/persistence/requirements.txt
+
+          - name: Create build directory
+        run: mkdir build
+
+    - name: Configure CMake
+      run: cmake -S . -B build
+
+    - name: Build with CMake
+      run: cmake --build build
+
+    - name: Run tests
+      working-directory: build
+      run: make run_tests
 
     - name: Run tests with coverage
       run: |
