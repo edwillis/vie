@@ -26,8 +26,8 @@ jobs:
         pip install -r python_services/terrain_generation/requirements.txt
         pip install -r python_services/persistence/requirements.txt
 
-          - name: Create build directory
-        run: mkdir build
+    - name: Create build directory
+      run: mkdir build
 
     - name: Configure CMake
       run: cmake -S . -B build
