@@ -45,8 +45,8 @@ add_custom_target(generate_protos ALL
                           ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2.py
                           ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2_grpc.py)
 
-# Add custom target to recreate the .context file
-add_custom_target(context
+# Add custom target to recreate the .cursorrules file
+add_custom_target(cursorrules
                   COMMAND ${CMAKE_COMMAND} -E env python ${CMAKE_SOURCE_DIR}/script/generate_context.py
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   COMMENT "Recreating .context files")

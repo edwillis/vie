@@ -25,6 +25,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r python_services/terrain_generation/requirements.txt
         pip install -r python_services/persistence/requirements.txt
+        
+    - name: Install CMake
+      uses: actions/setup-cmake@v3
+      with:
+        cmake-version: '3.28.3'  # Specify the required CMake version
 
     - name: Create build directory
       run: mkdir build
