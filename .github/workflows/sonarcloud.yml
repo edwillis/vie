@@ -17,8 +17,8 @@ jobs:
 
     - name: Install nonpython dependencies
       run: |
-        sudo -y apt-get update
-        sudo -y apt-get install -y libcairo2-dev
+        sudo apt-get update
+        sudo apt-get install -y libcairo2-dev
 
     - name: Install dependencies
       run: |
