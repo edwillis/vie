@@ -21,8 +21,10 @@ jobs:
 
       - name: Install dependencies
         run: |
+          echo "apt get"
           apt-get update
           apt-get install -y libcairo2-dev
+          echo "done apt get"
           python -m pip install --upgrade pip
           pip install -r python_services/persistence/requirements.txt
           pip install -r python_services/terrain_generation/requirements.txt
