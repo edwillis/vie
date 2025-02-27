@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: '3.12'  # Specify your Python version
 
-      - name: Install dependencies
+      - name: Install spatula dependencies
         run: |
           echo "apt get"
           apt-get update
