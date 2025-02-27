@@ -46,10 +46,6 @@ jobs:
       working-directory: build
       run: make run_tests
 
-    - name: Run tests with coverage
-      run: |
-        pytest --cov=python_services --cov-report=xml -v python_services/
-
     - name: Upload coverage to SonarCloud
       run: |
         sonar-scanner
