@@ -27,7 +27,7 @@ jobs:
         pip install -r python_services/persistence/requirements.txt
         
     - name: Install CMake
-      uses: actions/setup-cmake@v3
+      uses: jwlawson/actions-setup-cmake@v2
       with:
         cmake-version: '3.28.3'  # Specify the required CMake version
 
