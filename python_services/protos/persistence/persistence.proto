@@ -6,11 +6,13 @@ package persistence;
 service PersistenceService {
     rpc StoreTerrain (StoreTerrainRequest) returns (StoreTerrainResponse);
     rpc RetrieveTerrain (RetrieveTerrainRequest) returns (RetrieveTerrainResponse);
+    rpc SaveData (SaveDataRequest) returns (SaveDataResponse);
 }
 
 // Request to store terrain
 message StoreTerrainRequest {
     repeated TerrainTile tiles = 1;  // List of terrain tiles
+    string transaction_id = 2;       // Optional transaction ID for transaction handling
 }
 
 // Response from storing terrain
@@ -26,6 +28,16 @@ message RetrieveTerrainRequest {
 // Response for retrieving terrain
 message RetrieveTerrainResponse {
     repeated TerrainTile tiles = 1;  // List of terrain tiles
+}
+
+// Request to save data
+message SaveDataRequest {
+    string transaction_id = 1;  // ID of the transaction
+}
+
+// Response from saving data
+message SaveDataResponse {
+    bool success = 1;  // Indicates if the save operation was successful
 }
 
 // Terrain tile structure
