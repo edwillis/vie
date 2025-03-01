@@ -73,7 +73,7 @@ def test_terrain_generation():
     """
     width = 10
     height = 15
-    request = TerrainRequest(total_land_hexagons=width * height, persist=0)
+    request = TerrainRequest(total_land_hexagons =width * height, persist=0)
     context = Mock()
     response = TerrainGeneratorService().GenerateTerrain(request, context)
     assert len(response.tiles) == width * height
