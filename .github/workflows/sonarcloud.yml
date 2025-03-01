@@ -42,7 +42,7 @@ jobs:
     - name: Build with CMake
       run: cmake --build build
 
-    - name: Run tests
+    - name: Run tests with Coverage
       working-directory: build
       run: make run_tests
 

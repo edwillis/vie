@@ -73,6 +73,12 @@ endif()
 
 # Add custom target to run Python unit tests
 add_custom_target(run_tests
-                  COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_SOURCE_DIR}/python_services pytest --cov=vie/python_services --cov-report=html --cov-report=xml -v ${CMAKE_SOURCE_DIR}/python_services/
-                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python_services/
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                  COMMAND pytest --cov=python_services --cov-report=html --cov-report=xml  python_services/
                   COMMENT "Running Python unit tests with coverage")
+
+# Add custom target to run Python unit tests and then show the coverage report in the browser
+add_custom_target(show_coverage
+                  DEPENDS run_tests
+                  COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_SOURCE_DIR}/script/show_coverage.sh
+                  COMMENT "Running Python unit tests and showing the coverage report in the browser")
