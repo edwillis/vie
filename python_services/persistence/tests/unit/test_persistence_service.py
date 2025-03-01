@@ -1,6 +1,8 @@
 import pytest
+from unittest.mock import MagicMock
 from persistence.persistence_service import PersistenceService
 from persistence.persistence_pb2 import TerrainTile, StoreTerrainRequest, RetrieveTerrainRequest
+import grpc
 
 @pytest.fixture(scope='module')
 def persistence_service():
@@ -46,8 +48,13 @@ def test_retrieve_nonexistent_terrain(persistence_service):
     Tests the error handling when attempting to retrieve a terrain with a non-existent ID.
     
     @pre PersistenceService is initialized
-    @post An error is raised with the NOT_FOUND status code
+    @post The gRPC context is set with NOT_FOUND status code and appropriate details
     """
     request = RetrieveTerrainRequest(terrain_id="non-existent-id")
-    with pytest.raises(Exception):
-        persistence_service.RetrieveTerrain(request, None)
+    mock_context = MagicMock()
+    response = persistence_service.RetrieveTerrain(request, mock_context)
+    
+    # Check that the context was set with the correct status code and details
+    mock_context.set_code.assert_called_once_with(grpc.StatusCode.NOT_FOUND)
+    mock_context.set_details.assert_called_once_with('Terrain not found')
+    assert response is not None
