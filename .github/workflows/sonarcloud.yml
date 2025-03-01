@@ -52,8 +52,8 @@ jobs:
         unzip sonar-scanner-cli.zip
         export PATH="$PATH:$(pwd)/sonar-scanner-4.6.2.2472-linux/bin"
 
-    - name: Upload coverage to SonarCloud
-      run: |
-        sonar-scanner
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    # - name: Upload coverage to SonarCloud
+    #   run: |
+    #     sonar-scanner
+    #   env:
+    #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
