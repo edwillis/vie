@@ -55,118 +55,85 @@ class TerrainGeneratorService(
         start_time = time.time()
         logger.debug("GenerateTerrain invocation started.")
 
-        transaction_id = None  # Initialize transaction_id
-        persist = request.persist  # Ensure persist is initialized
-
         try:
             total_land_hexagons = request.total_land_hexagons
-            # generate an error if the total_land_hexagons is less than 1
-            if total_land_hexagons < 1:
-                raise ValueError("total_land_hexagons must be greater than 0")
+            self._validate_request(total_land_hexagons)
 
-            terrain_types = ["mountain", "hills", "forest", "plains", "desert", "lake"]
-            terrain_weights = {
-                "mountain": {
-                    "mountain": 0.4,
-                    "hills": 0.3,
-                    "forest": 0.1,
-                    "plains": 0.1,
-                    "desert": 0.1,
-                    "lake": 0.0,
-                },
-                "hills": {
-                    "mountain": 0.3,
-                    "hills": 0.3,
-                    "forest": 0.2,
-                    "plains": 0.1,
-                    "desert": 0.1,
-                    "lake": 0.0,
-                },
-                "forest": {
-                    "mountain": 0.1,
-                    "hills": 0.2,
-                    "forest": 0.4,
-                    "plains": 0.2,
-                    "desert": 0.0,
-                    "lake": 0.1,
-                },
-                "plains": {
-                    "mountain": 0.1,
-                    "hills": 0.1,
-                    "forest": 0.2,
-                    "plains": 0.4,
-                    "desert": 0.1,
-                    "lake": 0.1,
-                },
-                "desert": {
-                    "mountain": 0.1,
-                    "hills": 0.1,
-                    "forest": 0.0,
-                    "plains": 0.1,
-                    "desert": 0.6,
-                    "lake": 0.1,
-                },
-                "lake": {
-                    "mountain": 0.0,
-                    "hills": 0.0,
-                    "forest": 0.1,
-                    "plains": 0.1,
-                    "desert": 0.1,
-                    "lake": 0.7,
-                },
+            tiles = self._generate_terrain_tiles(total_land_hexagons)
+
+            terrain_id = ""
+            if request.persist:
+                terrain_id = self._persist_terrain(tiles)
+
+            self._log_generated_tiles(tiles)
+            response = self._create_response(tiles, terrain_id)
+
+            duration = time.time() - start_time
+            logger.info(f"GenerateTerrain completed in {duration:.2f} seconds.")
+            return response
+        except Exception as e:
+            logger.error(f"Error during terrain generation: {e}")
+            context.set_details(str(e))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            return terrain_generation_pb2.TerrainResponse()
+
+    def _validate_request(self, total_land_hexagons):
+        """
+        @brief Validates the request parameters.
+
+        @param total_land_hexagons The total number of land hexagons requested.
+
+        @exception ValueError If total_land_hexagons is less than 1.
+        """
+        if total_land_hexagons < 1:
+            raise ValueError("total_land_hexagons must be greater than 0")
+
+    def _generate_terrain_tiles(self, total_land_hexagons):
+        """
+        @brief Generates terrain tiles using a flood fill algorithm.
+
+        @param total_land_hexagons The total number of land hexagons to generate.
+
+        @return A list of generated TerrainTile objects.
+        """
+        terrain_types = ["mountain", "hills", "forest", "plains", "desert", "lake"]
+        terrain_weights = self._get_terrain_weights()
+
+        def choose_terrain_type(neighbors):
+            if not neighbors:
+                return random.choice(terrain_types)
+            neighbor_types = [tile.terrain_type for tile in neighbors]
+            weights = {
+                terrain: sum(
+                    terrain_weights[neighbor].get(terrain, 0)
+                    for neighbor in neighbor_types
+                )
+                for terrain in terrain_types
             }
+            total_weight = sum(weights.values())
+            if total_weight == 0:
+                return random.choice(terrain_types)
+            return random.choices(
+                list(weights.keys()), weights=list(weights.values()), k=1
+            )[0]
 
-            def choose_terrain_type(neighbors):
-                if not neighbors:
-                    return random.choice(terrain_types)
-                neighbor_types = [tile.terrain_type for tile in neighbors]
-                weights = {
-                    terrain: sum(
-                        terrain_weights[neighbor].get(terrain, 0)
-                        for neighbor in neighbor_types
-                    )
-                    for terrain in terrain_types
-                }
-                total_weight = sum(weights.values())
-                if total_weight == 0:
-                    return random.choice(terrain_types)
-                return random.choices(
-                    list(weights.keys()), weights=list(weights.values()), k=1
-                )[0]
-
-            def generate_island():
-                tiles = []
-                visited = set()
-                queue = [(0, 0)]
-                while queue and len(tiles) < total_land_hexagons:
-                    x, y = queue.pop(0)
-                    if (x, y) in visited:
-                        continue
-                    visited.add((x, y))
-                    nx = x * scale
-                    ny = y * scale
-                    elevation = noise.pnoise2(nx, ny)
-                    neighbors = [
-                        tile
-                        for tile in tiles
-                        if (tile.x, tile.y)
-                        in [
-                            (x + 1, y),
-                            (x - 1, y),
-                            (x, y + 1),
-                            (x, y - 1),
-                            (x + 1, y - 1),
-                            (x - 1, y + 1),
-                        ]
-                    ]
-                    terrain_type = choose_terrain_type(neighbors)
-                    tiles.append(
-                        terrain_generation_pb2.TerrainTile(
-                            x=x, y=y, terrain_type=terrain_type
-                        )
-                    )
-                    # Add neighboring hexes to the queue
-                    neighbors_coords = [
+        def generate_island():
+            tiles = []
+            visited = set()
+            queue = [(0, 0)]
+            while queue and len(tiles) < total_land_hexagons:
+                x, y = queue.pop(0)
+                if (x, y) in visited:
+                    continue
+                visited.add((x, y))
+                nx = x * scale
+                ny = y * scale
+                elevation = noise.pnoise2(nx, ny)
+                neighbors = [
+                    tile
+                    for tile in tiles
+                    if (tile.x, tile.y)
+                    in [
                         (x + 1, y),
                         (x - 1, y),
                         (x, y + 1),
@@ -174,67 +141,160 @@ class TerrainGeneratorService(
                         (x + 1, y - 1),
                         (x - 1, y + 1),
                     ]
-                    queue.extend(neighbors_coords)
-                return tiles
+                ]
+                terrain_type = choose_terrain_type(neighbors)
+                tiles.append(
+                    terrain_generation_pb2.TerrainTile(
+                        x=x, y=y, terrain_type=terrain_type
+                    )
+                )
+                # Add neighboring hexes to the queue
+                neighbors_coords = [
+                    (x + 1, y),
+                    (x - 1, y),
+                    (x, y + 1),
+                    (x, y - 1),
+                    (x + 1, y - 1),
+                    (x - 1, y + 1),
+                ]
+                queue.extend(neighbors_coords)
+            return tiles
 
-            # Generate terrain tiles using a flood fill algorithm to ensure contiguity
-            radius = math.ceil(math.sqrt(total_land_hexagons / math.pi))
-            scale = 0.1
+        # Generate terrain tiles using a flood fill algorithm to ensure contiguity
+        radius = math.ceil(math.sqrt(total_land_hexagons / math.pi))
+        scale = 0.1
+        tiles = generate_island()
+
+        # Retry if not enough tiles are generated
+        while len(tiles) < total_land_hexagons:
+            logger.warning("Not enough tiles generated, retrying...")
             tiles = generate_island()
 
-            # Retry if not enough tiles are generated
-            while len(tiles) < total_land_hexagons:
-                logger.warning("Not enough tiles generated, retrying...")
-                tiles = generate_island()
+        return tiles
 
-            terrain_id = ""
-            if persist:
-                # Begin a transaction
-                begin_response = self.persistence_stub.BeginTransaction(
-                    BeginTransactionRequest()
-                )
-                transaction_id = begin_response.transaction_id
+    def _persist_terrain(self, tiles):
+        """
+        @brief Persists the generated terrain tiles.
 
-                # Persist the generated terrain
-                store_request = StoreTerrainRequest(
-                    tiles=[
-                        TerrainTile(x=tile.x, y=tile.y, terrain_type=tile.terrain_type)
-                        for tile in tiles
-                    ],
-                    transaction_id=transaction_id,
-                )
-                store_response = self.persistence_stub.StoreTerrain(store_request)
-                terrain_id = store_response.terrain_id
+        @param tiles The list of generated TerrainTile objects.
 
-                # Commit the transaction
-                self.persistence_stub.CommitTransaction(
-                    CommitTransactionRequest(transaction_id=transaction_id)
-                )
+        @return The ID of the persisted terrain.
+        """
+        transaction_id = None  # Initialize transaction_id
 
-            # log all the generated tiles
-            for tile in tiles:
-                logger.info(f"Generated tile: {tile.x}, {tile.y}, {tile.terrain_type}")
-            response = terrain_generation_pb2.TerrainResponse(
-                tiles=tiles, terrain_id=terrain_id
+        try:
+            # Begin a transaction
+            begin_response = self.persistence_stub.BeginTransaction(
+                BeginTransactionRequest()
             )
-            logger.info("Generated terrain with %d tiles", len(tiles))
-            logger.info("Terrain generated successfully.")
-            duration = time.time() - start_time
-            logger.info(f"GenerateTerrain completed in {duration:.2f} seconds.")
-            return response
+            transaction_id = begin_response.transaction_id
+
+            # Persist the generated terrain
+            store_request = StoreTerrainRequest(
+                tiles=[
+                    TerrainTile(x=tile.x, y=tile.y, terrain_type=tile.terrain_type)
+                    for tile in tiles
+                ],
+                transaction_id=transaction_id,
+            )
+            store_response = self.persistence_stub.StoreTerrain(store_request)
+            terrain_id = store_response.terrain_id
+
+            # Commit the transaction
+            self.persistence_stub.CommitTransaction(
+                CommitTransactionRequest(transaction_id=transaction_id)
+            )
+
+            return terrain_id
         except Exception as e:
-            logger.error(f"Error during terrain generation: {e}")
-            context.set_details("Failed to generate terrain.")
-            context.set_code(grpc.StatusCode.INTERNAL)
-            if persist and transaction_id:
+            logger.error(f"Error during terrain persistence: {e}")
+            if transaction_id:
                 # Rollback the transaction in case of error
                 self.persistence_stub.RollbackTransaction(
                     RollbackTransactionRequest(transaction_id=transaction_id)
                 )
-            return terrain_generation_pb2.TerrainResponse()
-        finally:
-            duration = timer() - start_time
-            logger.info("GenerateTerrain invocation took %f seconds", duration)
+            return ""
+
+    def _log_generated_tiles(self, tiles):
+        """
+        @brief Logs each generated terrain tile.
+
+        @param tiles The list of generated TerrainTile objects.
+        """
+        for tile in tiles:
+            logger.info(f"Generated tile: {tile.x}, {tile.y}, {tile.terrain_type}")
+
+    def _create_response(self, tiles, terrain_id):
+        """
+        @brief Creates a TerrainResponse object.
+
+        @param tiles The list of generated TerrainTile objects.
+        @param terrain_id The ID of the persisted terrain.
+
+        @return A TerrainResponse object containing the tiles and terrain ID.
+        """
+        logger.info("Generated terrain with %d tiles", len(tiles))
+        logger.info("Terrain generated successfully.")
+        return terrain_generation_pb2.TerrainResponse(
+            tiles=tiles, terrain_id=terrain_id
+        )
+
+    def _get_terrain_weights(self):
+        """
+        @brief Returns the terrain weights for generating terrain types.
+
+        @return A dictionary of terrain weights.
+        """
+        return {
+            "mountain": {
+                "mountain": 0.4,
+                "hills": 0.3,
+                "forest": 0.1,
+                "plains": 0.1,
+                "desert": 0.1,
+                "lake": 0.0,
+            },
+            "hills": {
+                "mountain": 0.3,
+                "hills": 0.3,
+                "forest": 0.2,
+                "plains": 0.1,
+                "desert": 0.1,
+                "lake": 0.0,
+            },
+            "forest": {
+                "mountain": 0.1,
+                "hills": 0.2,
+                "forest": 0.4,
+                "plains": 0.2,
+                "desert": 0.0,
+                "lake": 0.1,
+            },
+            "plains": {
+                "mountain": 0.1,
+                "hills": 0.1,
+                "forest": 0.2,
+                "plains": 0.4,
+                "desert": 0.1,
+                "lake": 0.1,
+            },
+            "desert": {
+                "mountain": 0.1,
+                "hills": 0.1,
+                "forest": 0.0,
+                "plains": 0.1,
+                "desert": 0.6,
+                "lake": 0.1,
+            },
+            "lake": {
+                "mountain": 0.0,
+                "hills": 0.0,
+                "forest": 0.1,
+                "plains": 0.1,
+                "desert": 0.1,
+                "lake": 0.7,
+            },
+        }
 
 
 LOCK_FILE = "/tmp/terrain_generation_service.lock"

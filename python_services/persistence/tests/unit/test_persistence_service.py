@@ -129,7 +129,7 @@ def test_rollback_transaction(persistence_service):
     # Attempt to retrieve the terrain, which should not exist
     retrieve_request = RetrieveTerrainRequest(terrain_id="non-existent-id")
     mock_context = MagicMock()
-    response = persistence_service.RetrieveTerrain(retrieve_request, mock_context)
+    persistence_service.RetrieveTerrain(retrieve_request, mock_context)
     mock_context.set_code.assert_called_once_with(grpc.StatusCode.NOT_FOUND)
 
 def test_transaction_commit_after_rollback(persistence_service):

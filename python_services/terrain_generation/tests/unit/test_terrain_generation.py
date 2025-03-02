@@ -60,7 +60,7 @@ def test_generate_terrain_error_handling():
 
     assert isinstance(response, TerrainResponse)
     assert len(response.tiles) == 0
-    context.set_details.assert_called_once_with("Failed to generate terrain.")
+    context.set_details.assert_called_once_with("total_land_hexagons must be greater than 0")
     context.set_code.assert_called_once_with(grpc.StatusCode.INTERNAL)
 
 def test_terrain_generation():
