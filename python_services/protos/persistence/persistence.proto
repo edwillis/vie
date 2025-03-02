@@ -6,11 +6,15 @@ package persistence;
 service PersistenceService {
     rpc StoreTerrain (StoreTerrainRequest) returns (StoreTerrainResponse);
     rpc RetrieveTerrain (RetrieveTerrainRequest) returns (RetrieveTerrainResponse);
+    rpc BeginTransaction (BeginTransactionRequest) returns (BeginTransactionResponse);
+    rpc CommitTransaction (CommitTransactionRequest) returns (CommitTransactionResponse);
+    rpc RollbackTransaction (RollbackTransactionRequest) returns (RollbackTransactionResponse);
 }
 
 // Request to store terrain
 message StoreTerrainRequest {
     repeated TerrainTile tiles = 1;  // List of terrain tiles
+    string transaction_id = 2;       // Optional transaction ID
 }
 
 // Response from storing terrain
@@ -21,6 +25,7 @@ message StoreTerrainResponse {
 // Request to retrieve terrain
 message RetrieveTerrainRequest {
     string terrain_id = 1;  // The ID of the terrain to retrieve
+    string transaction_id = 2; // Optional transaction ID
 }
 
 // Response for retrieving terrain
@@ -34,3 +39,21 @@ message TerrainTile {
     int32 y = 2;
     string terrain_type = 3;
 }
+
+// Transaction management messages
+message BeginTransactionRequest {}
+message BeginTransactionResponse {
+    string transaction_id = 1;  // Unique transaction ID
+}
+
+message CommitTransactionRequest {
+    string transaction_id = 1;  // Transaction ID to commit
+}
+
+message CommitTransactionResponse {}
+
+message RollbackTransactionRequest {
+    string transaction_id = 1;  // Transaction ID to rollback
+}
+
+message RollbackTransactionResponse {}

@@ -143,3 +143,28 @@ def test_black_formatting():
 
     # If the file is correctly formatted, Black will return None. If it's not, raise an error.
     assert not result, f"Formatting issues found in {path}"
+
+def test_generate_terrain_with_transaction():
+    """
+    @test Generate Terrain with Transaction
+    Tests the terrain generation with transaction management.
+    
+    @pre TerrainGeneratorService is initialized
+    @post A TerrainResponse with the expected number of tiles is returned and transaction is committed
+    """
+    service = TerrainGeneratorService()
+    request = TerrainRequest(total_land_hexagons=5, persist=1)
+    context = MagicMock()
+
+    with patch.object(service, 'persistence_stub', autospec=True) as mock_stub:
+        mock_stub.BeginTransaction.return_value = MagicMock(transaction_id='1234')
+        mock_stub.StoreTerrain.return_value = MagicMock(terrain_id='5678')
+        mock_stub.CommitTransaction.return_value = MagicMock()
+
+        response = service.GenerateTerrain(request, context)
+
+        mock_stub.BeginTransaction.assert_called_once()
+        mock_stub.StoreTerrain.assert_called_once()
+        mock_stub.CommitTransaction.assert_called_once()
+        assert isinstance(response, TerrainResponse)
+        assert len(response.tiles) == 5

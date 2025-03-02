@@ -2,7 +2,13 @@ import logging
 import grpc
 from concurrent import futures
 from timeit import default_timer as timer
-from persistence.persistence_pb2 import TerrainTile, StoreTerrainRequest
+from persistence.persistence_pb2 import (
+    TerrainTile,
+    StoreTerrainRequest,
+    CommitTransactionRequest,
+    RollbackTransactionRequest,
+    BeginTransactionRequest,
+)
 from persistence.persistence_pb2_grpc import PersistenceServiceStub
 import terrain_generation.terrain_generation_pb2 as terrain_generation_pb2
 import terrain_generation.terrain_generation_pb2_grpc as terrain_generation_pb2_grpc
@@ -13,6 +19,7 @@ import socket
 import os
 from grpc_reflection.v1alpha import reflection
 from common.logging_config import setup_logger
+from persistence.persistence_pb2 import BeginTransactionRequest
 
 # Configure logging using the common logging configuration
 logger = setup_logger("TerrainGeneratorService")
@@ -29,7 +36,9 @@ class TerrainGeneratorService(
         """
         @brief Initializes the TerrainGeneratorService.
         """
-        self.persistence_stub = None
+        self.persistence_stub = PersistenceServiceStub(
+            grpc.insecure_channel("localhost:50052")
+        )
         logger.info("TerrainGeneratorService initialized.")
 
     def GenerateTerrain(self, request, context):
@@ -46,12 +55,14 @@ class TerrainGeneratorService(
         start_time = time.time()
         logger.debug("GenerateTerrain invocation started.")
 
+        transaction_id = None  # Initialize transaction_id
+        persist = request.persist  # Ensure persist is initialized
+
         try:
             total_land_hexagons = request.total_land_hexagons
             # generate an error if the total_land_hexagons is less than 1
             if total_land_hexagons < 1:
                 raise ValueError("total_land_hexagons must be greater than 0")
-            persist = request.persist
 
             terrain_types = ["mountain", "hills", "forest", "plains", "desert", "lake"]
             terrain_weights = {
@@ -178,15 +189,28 @@ class TerrainGeneratorService(
 
             terrain_id = ""
             if persist:
+                # Begin a transaction
+                begin_response = self.persistence_stub.BeginTransaction(
+                    BeginTransactionRequest()
+                )
+                transaction_id = begin_response.transaction_id
+
                 # Persist the generated terrain
                 store_request = StoreTerrainRequest(
                     tiles=[
                         TerrainTile(x=tile.x, y=tile.y, terrain_type=tile.terrain_type)
                         for tile in tiles
-                    ]
+                    ],
+                    transaction_id=transaction_id,
                 )
                 store_response = self.persistence_stub.StoreTerrain(store_request)
                 terrain_id = store_response.terrain_id
+
+                # Commit the transaction
+                self.persistence_stub.CommitTransaction(
+                    CommitTransactionRequest(transaction_id=transaction_id)
+                )
+
             # log all the generated tiles
             for tile in tiles:
                 logger.info(f"Generated tile: {tile.x}, {tile.y}, {tile.terrain_type}")
@@ -202,6 +226,11 @@ class TerrainGeneratorService(
             logger.error(f"Error during terrain generation: {e}")
             context.set_details("Failed to generate terrain.")
             context.set_code(grpc.StatusCode.INTERNAL)
+            if persist and transaction_id:
+                # Rollback the transaction in case of error
+                self.persistence_stub.RollbackTransaction(
+                    RollbackTransactionRequest(transaction_id=transaction_id)
+                )
             return terrain_generation_pb2.TerrainResponse()
         finally:
             duration = timer() - start_time
