@@ -20,6 +20,7 @@ message StoreTerrainRequest {
 // Response from storing terrain
 message StoreTerrainResponse {
     string terrain_id = 1;  // Unique identifier for the terrain
+    repeated int32 tile_ids = 2;  // List of tile IDs
 }
 
 // Request to retrieve terrain
@@ -35,9 +36,10 @@ message RetrieveTerrainResponse {
 
 // Terrain tile structure
 message TerrainTile {
-    int32 x = 1;
-    int32 y = 2;
-    string terrain_type = 3;
+    int32 id = 1;  // Unique identifier for the tile
+    int32 x = 2;
+    int32 y = 3;
+    string terrain_type = 4;
 }
 
 // Transaction management messages

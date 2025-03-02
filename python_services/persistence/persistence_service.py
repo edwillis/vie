@@ -88,16 +88,27 @@ class PersistenceService(persistence_pb2_grpc.PersistenceServiceServicer):
         session = self.sessions[transaction_id] if transaction_id else DbSession()
         with self.lock:
             terrain_id = str(uuid.uuid4())
+            tile_ids = []  # List to store the IDs of the created or updated tiles
             for tile in request.tiles:
-                new_tile = TerrainTile(x=tile.x, y=tile.y, terrain_type=tile.terrain_type, terrain_id=terrain_id)
-                session.add(new_tile)
+                if tile.id:  # Check if the tile has an ID
+                    # Update the existing tile
+                    existing_tile = session.query(TerrainTile).filter_by(id=tile.id).first()
+                    if existing_tile:
+                        existing_tile.terrain_type = tile.terrain_type
+                        tile_ids.append(existing_tile.id)
+                else:
+                    # Add a new tile
+                    new_tile = TerrainTile(x=tile.x, y=tile.y, terrain_type=tile.terrain_type, terrain_id=terrain_id)
+                    session.add(new_tile)
+                    session.flush()  # Ensure the ID is generated
+                    tile_ids.append(new_tile.id)
             if not transaction_id:
                 session.commit()
                 session.close()
             logger.info(f"Stored terrain with ID: {terrain_id}")
             duration = time.time() - start_time
             logger.info(f"StoreTerrain invocation duration: {duration:.2f} seconds")
-            return persistence_pb2.StoreTerrainResponse(terrain_id=terrain_id)
+            return persistence_pb2.StoreTerrainResponse(terrain_id=terrain_id, tile_ids=tile_ids)
 
     def RetrieveTerrain(self, request, context):
         start_time = time.time()
