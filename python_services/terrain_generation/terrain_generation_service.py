@@ -71,10 +71,15 @@ class TerrainGeneratorService(
             duration = time.time() - start_time
             logger.info(f"GenerateTerrain completed in {duration:.2f} seconds.")
             return response
+        except ValueError as e:
+            logger.error(f"Error during terrain generation: {e}")
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details(str(e))
+            return terrain_generation_pb2.TerrainResponse()
         except Exception as e:
             logger.error(f"Error during terrain generation: {e}")
-            context.set_details(str(e))
             context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details("Failed to store terrain")
             return terrain_generation_pb2.TerrainResponse()
 
     def _validate_request(self, total_land_hexagons):

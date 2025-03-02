@@ -83,32 +83,48 @@ class PersistenceService(persistence_pb2_grpc.PersistenceServiceServicer):
         return persistence_pb2.RollbackTransactionResponse()
 
     def StoreTerrain(self, request, context):
-        start_time = time.time()
-        transaction_id = request.transaction_id
-        session = self.sessions[transaction_id] if transaction_id else DbSession()
-        with self.lock:
-            terrain_id = str(uuid.uuid4())
-            tile_ids = []  # List to store the IDs of the created or updated tiles
-            for tile in request.tiles:
-                if tile.id:  # Check if the tile has an ID
-                    # Update the existing tile
-                    existing_tile = session.query(TerrainTile).filter_by(id=tile.id).first()
-                    if existing_tile:
-                        existing_tile.terrain_type = tile.terrain_type
-                        tile_ids.append(existing_tile.id)
-                else:
-                    # Add a new tile
-                    new_tile = TerrainTile(x=tile.x, y=tile.y, terrain_type=tile.terrain_type, terrain_id=terrain_id)
-                    session.add(new_tile)
-                    session.flush()  # Ensure the ID is generated
-                    tile_ids.append(new_tile.id)
-            if not transaction_id:
+        """
+        @brief Stores terrain data in the database.
+
+        @param request The request containing terrain tiles to store.
+        @param context The gRPC context.
+
+        @return A response indicating success or failure.
+        """
+        try:
+            with self.DbSession() as session:
+                terrain_id = request.transaction_id or str(uuid.uuid4())
+                tile_ids = []
+                for tile in request.tiles:
+                    if tile.id:  # Check if the tile has an ID, indicating an update
+                        existing_tile = session.query(TerrainTile).filter_by(id=tile.id).first()
+                        if existing_tile:
+                            existing_tile.x = tile.x
+                            existing_tile.y = tile.y
+                            existing_tile.terrain_type = tile.terrain_type
+                            tile_ids.append(existing_tile.id)
+                        else:
+                            context.set_code(grpc.StatusCode.NOT_FOUND)
+                            context.set_details(f"Tile with ID {tile.id} not found for update")
+                            return persistence_pb2.StoreTerrainResponse(success=False)
+                    else:
+                        new_tile = TerrainTile(
+                            x=tile.x,
+                            y=tile.y,
+                            terrain_type=tile.terrain_type,
+                            terrain_id=terrain_id
+                        )
+                        session.add(new_tile)
+                        session.flush()  # Ensure the ID is generated
+                        tile_ids.append(new_tile.id)
                 session.commit()
-                session.close()
-            logger.info(f"Stored terrain with ID: {terrain_id}")
-            duration = time.time() - start_time
-            logger.info(f"StoreTerrain invocation duration: {duration:.2f} seconds")
-            return persistence_pb2.StoreTerrainResponse(terrain_id=terrain_id, tile_ids=tile_ids)
+                logger.info("Stored terrain successfully.")
+                return persistence_pb2.StoreTerrainResponse(terrain_id=terrain_id, tile_ids=tile_ids, success=True)
+        except Exception as e:
+            logger.error(f"Failed to store terrain: {e}")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details('Failed to store terrain')
+            return persistence_pb2.StoreTerrainResponse(success=False)
 
     def RetrieveTerrain(self, request, context):
         start_time = time.time()
@@ -128,90 +144,6 @@ class PersistenceService(persistence_pb2_grpc.PersistenceServiceServicer):
             duration = time.time() - start_time
             logger.info(f"RetrieveTerrain invocation duration: {duration:.2f} seconds")
             return response
-
-    def SaveData(self, request, context):
-        """
-        @brief Saves data to the persistence layer.
-        
-        @param request The data to save.
-        @param context The gRPC context.
-        @return The save data response.
-        
-        @exception context with appropriate HTTP response code on failure.
-        """
-        import time
-        start_time = time.time()
-        logger.debug("SaveData invocation started.")
-        
-        try:
-            session = self.DbSession()
-            # Data persistence logic
-            # ...
-            session.commit()
-            logger.info("Data saved successfully.")
-            duration = time.time() - start_time
-            logger.info(f"SaveData completed in {duration:.2f} seconds.")
-            return persistence_pb2.SaveDataResponse()
-        except Exception as e:
-            logger.error(f"Error during data persistence: {e}")
-            session.rollback()
-            context.set_details('Failed to save data.')
-            context.set_code(grpc.StatusCode.INTERNAL)
-            return persistence_pb2.SaveDataResponse()
-        finally:
-            session.close()
-
-    def _queue_operation(self, transaction_id: str, operation_type: str, 
-                        entity_type: str, data: str, sequence: int) -> bool:
-        """!
-        @brief Internal method to queue an operation closure in a transaction.
-        @param transaction_id The ID of the transaction
-        @param operation_type Type of operation (CREATE, UPDATE, DELETE)
-        @param entity_type Type of entity being operated on
-        @param data JSON-formatted operation data
-        @param sequence Operation sequence number
-        @return bool indicating success or failure
-        @note Internal use only - not exposed via gRPC
-        """
-        def create_closure(operation_type: str, entity_type: str, data: str) -> Callable[[Session], Any]:
-            """Creates a closure for the requested database operation"""
-            data_dict = json.loads(data)
-            
-            if entity_type == "TerrainTile":
-                if operation_type == "CREATE":
-                    def operation(db_session: Session) -> None:
-                        tile = TerrainTile(
-                            x=data_dict['x'],
-                            y=data_dict['y'],
-                            terrain_type=data_dict['terrain_type'],
-                            terrain_id=data_dict.get('terrain_id', str(uuid.uuid4()))
-                        )
-                        db_session.add(tile)
-                    return operation
-                
-                elif operation_type == "UPDATE":
-                    def operation(db_session: Session) -> None:
-                        tile = db_session.query(TerrainTile).filter_by(
-                            terrain_id=data_dict['terrain_id'],
-                            x=data_dict['x'],
-                            y=data_dict['y']
-                        ).first()
-                        if tile:
-                            tile.terrain_type = data_dict['terrain_type']
-                    return operation
-                
-                elif operation_type == "DELETE":
-                    def operation(db_session: Session) -> None:
-                        db_session.query(TerrainTile).filter_by(
-                            terrain_id=data_dict['terrain_id'],
-                            x=data_dict['x'],
-                            y=data_dict['y']
-                        ).delete()
-                    return operation
-            
-            # Add support for other entity types here
-            
-            raise ValueError(f"Unsupported operation {operation_type} on entity {entity_type}")
 
 LOCK_FILE = "/tmp/persistence_service.lock"
 

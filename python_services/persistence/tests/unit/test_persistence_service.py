@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from persistence.persistence_service import PersistenceService
 from persistence.persistence_pb2 import (
     TerrainTile,
@@ -44,9 +44,9 @@ def test_retrieve_terrain(persistence_service):
         TerrainTile(x=2, y=2, terrain_type="Forest")
     ]
     store_request = StoreTerrainRequest(tiles=tiles)
-    store_response = persistence_service.StoreTerrain(store_request, None)
+    store_response = persistence_service.StoreTerrain(store_request, MagicMock())  # Use a mock context
     retrieve_request = RetrieveTerrainRequest(terrain_id=store_response.terrain_id)
-    retrieve_response = persistence_service.RetrieveTerrain(retrieve_request, None)
+    retrieve_response = persistence_service.RetrieveTerrain(retrieve_request, MagicMock())  # Use a mock context
     assert len(retrieve_response.tiles) == 2
 
 def test_retrieve_nonexistent_terrain(persistence_service):
@@ -182,35 +182,58 @@ def test_create_update_commit_transaction(persistence_service):
     @pre A transaction is started
     @post The terrain is updated and committed successfully, and the updated value is retrieved
     """
-    # Start a transaction
-    begin_response = persistence_service.BeginTransaction(BeginTransactionRequest(), None)
+    begin_response = persistence_service.BeginTransaction(BeginTransactionRequest(), MagicMock())
     transaction_id = begin_response.transaction_id
 
-    # Create terrain within the transaction
     initial_tiles = [
         TerrainTile(x=1, y=1, terrain_type="Mountain"),
         TerrainTile(x=2, y=2, terrain_type="Forest")
     ]
     store_request = StoreTerrainRequest(tiles=initial_tiles, transaction_id=transaction_id)
-    store_response = persistence_service.StoreTerrain(store_request, None)
+    store_response = persistence_service.StoreTerrain(store_request, MagicMock())
     terrain_id = store_response.terrain_id
     tile_ids = store_response.tile_ids
 
-    # Update terrain within the transaction using tile IDs
+    assert tile_ids, "Tile IDs should not be empty"
+
     updated_tiles = [
-        TerrainTile(id=tile_ids[0], x=1, y=1, terrain_type="Desert"),  # Change terrain type
+        TerrainTile(id=tile_ids[0], x=1, y=1, terrain_type="Desert"),
         TerrainTile(id=tile_ids[1], x=2, y=2, terrain_type="Forest")
     ]
     update_request = StoreTerrainRequest(tiles=updated_tiles, transaction_id=transaction_id)
-    persistence_service.StoreTerrain(update_request, None)
+    persistence_service.StoreTerrain(update_request, MagicMock())
 
-    # Commit the transaction
     commit_request = CommitTransactionRequest(transaction_id=transaction_id)
-    persistence_service.CommitTransaction(commit_request, None)
+    persistence_service.CommitTransaction(commit_request, MagicMock())
 
-    # Retrieve and verify the updated terrain
     retrieve_request = RetrieveTerrainRequest(terrain_id=terrain_id)
-    retrieve_response = persistence_service.RetrieveTerrain(retrieve_request, None)
+    retrieve_response = persistence_service.RetrieveTerrain(retrieve_request, MagicMock())
     assert len(retrieve_response.tiles) == 2
     assert any(tile.terrain_type == "Desert" for tile in retrieve_response.tiles)
     assert any(tile.terrain_type == "Forest" for tile in retrieve_response.tiles)
+
+def test_store_terrain_error_handling(persistence_service):
+    """
+    @test Store Terrain Error Handling
+    Tests the error handling mechanism during terrain storage when an exception is raised.
+    
+    @pre PersistenceService is initialized
+    @post An error is logged and the appropriate gRPC status code is set
+    """
+    tiles = [
+        TerrainTile(x=1, y=1, terrain_type="Mountain"),
+        TerrainTile(x=2, y=2, terrain_type="Forest")
+    ]
+    request = StoreTerrainRequest(tiles=tiles)
+    mock_context = MagicMock()
+
+    # Mock the session to raise an exception during commit
+    with patch.object(persistence_service, 'DbSession', autospec=True) as mock_session:
+        mock_session.return_value.commit.side_effect = Exception("Simulated database error")
+
+        response = persistence_service.StoreTerrain(request, mock_context)
+
+        # Verify that the error was handled
+        mock_context.set_code.assert_called_once_with(grpc.StatusCode.INTERNAL)
+        mock_context.set_details.assert_called_once_with('Failed to store terrain')
+        assert not response.success

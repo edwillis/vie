@@ -21,6 +21,7 @@ message StoreTerrainRequest {
 message StoreTerrainResponse {
     string terrain_id = 1;  // Unique identifier for the terrain
     repeated int32 tile_ids = 2;  // List of tile IDs
+    bool success = 3;  // Add this field
 }
 
 // Request to retrieve terrain
