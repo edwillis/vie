@@ -1,8 +1,12 @@
 name: SonarCloud Analysis
 
 on:
+  push:
+    branches:
+      - '**'  # Triggers on push to any branch
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches:
+      - master  # Triggers on PRs targeting the master branch
 
 jobs:
   build:
@@ -17,7 +21,7 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install nonpython dependencies
+    - name: Install non-python dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y libcairo2-dev libgirepository1.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev 

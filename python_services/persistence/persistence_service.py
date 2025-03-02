@@ -8,13 +8,13 @@ import socket
 import os
 from concurrent import futures
 from sqlalchemy import create_engine, Column, Integer, String, Sequence
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
 import persistence.persistence_pb2 as persistence_pb2
 import persistence.persistence_pb2_grpc as persistence_pb2_grpc
 from grpc_reflection.v1alpha import reflection
 from common.logging_config import setup_logger
 import json
+from collections import defaultdict
 
 # Configure logging using the common logging configuration
 logger = setup_logger("PersistenceService")
@@ -47,21 +47,68 @@ class PersistenceService(persistence_pb2_grpc.PersistenceServiceServicer):
         self.DbSession = sessionmaker(bind=self.engine)
         logger.info("PersistenceService initialized.")
         self.lock = threading.Lock()
+        self.sessions = defaultdict(lambda: self.DbSession())
+        self.transaction_locks = defaultdict(threading.Lock)
+
+    def BeginTransaction(self, request, context):
+        transaction_id = str(uuid.uuid4())
+        self.sessions[transaction_id]  # Initialize session
+        logger.info(f"Transaction {transaction_id} started.")
+        return persistence_pb2.BeginTransactionResponse(transaction_id=transaction_id)
+
+    def CommitTransaction(self, request, context):
+        transaction_id = request.transaction_id
+        with self.transaction_locks[transaction_id]:
+            session = self.sessions.pop(transaction_id, None)
+            if session:
+                session.commit()
+                session.close()
+                logger.info(f"Transaction {transaction_id} committed.")
+            else:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details("Transaction not found.")
+        return persistence_pb2.CommitTransactionResponse()
+
+    def RollbackTransaction(self, request, context):
+        transaction_id = request.transaction_id
+        with self.transaction_locks[transaction_id]:
+            session = self.sessions.pop(transaction_id, None)
+            if session:
+                session.rollback()
+                session.close()
+                logger.info(f"Transaction {transaction_id} rolled back.")
+            else:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details("Transaction not found.")
+        return persistence_pb2.RollbackTransactionResponse()
 
     def StoreTerrain(self, request, context):
         start_time = time.time()
+        transaction_id = request.transaction_id
+        session = self.sessions[transaction_id] if transaction_id else DbSession()
         with self.lock:
-            session = DbSession()
             terrain_id = str(uuid.uuid4())
+            tile_ids = []  # List to store the IDs of the created or updated tiles
             for tile in request.tiles:
-                new_tile = TerrainTile(x=tile.x, y=tile.y, terrain_type=tile.terrain_type, terrain_id=terrain_id)
-                session.add(new_tile)
-            session.commit()
-            session.close()
+                if tile.id:  # Check if the tile has an ID
+                    # Update the existing tile
+                    existing_tile = session.query(TerrainTile).filter_by(id=tile.id).first()
+                    if existing_tile:
+                        existing_tile.terrain_type = tile.terrain_type
+                        tile_ids.append(existing_tile.id)
+                else:
+                    # Add a new tile
+                    new_tile = TerrainTile(x=tile.x, y=tile.y, terrain_type=tile.terrain_type, terrain_id=terrain_id)
+                    session.add(new_tile)
+                    session.flush()  # Ensure the ID is generated
+                    tile_ids.append(new_tile.id)
+            if not transaction_id:
+                session.commit()
+                session.close()
             logger.info(f"Stored terrain with ID: {terrain_id}")
             duration = time.time() - start_time
             logger.info(f"StoreTerrain invocation duration: {duration:.2f} seconds")
-            return persistence_pb2.StoreTerrainResponse(terrain_id=terrain_id)
+            return persistence_pb2.StoreTerrainResponse(terrain_id=terrain_id, tile_ids=tile_ids)
 
     def RetrieveTerrain(self, request, context):
         start_time = time.time()

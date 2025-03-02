@@ -27,8 +27,6 @@ def compute_project_structure(line_buffer, root="."):
 			line_buffer.append(os.path.relpath(os.path.join(dirpath, filename), root) + '\n')
 
 compute_project_structure(buffer)
-with open('.context', 'w') as file1:
-    file1.writelines(buffer)
 
 # URL of the file to retrieve
 url = "https://raw.githubusercontent.com/wiki/edwillis/vie/src/Vie-Detailed-Design.md"
@@ -44,6 +42,6 @@ buffer.append(file_contents)
 
 # Write the updated buffer to the .context file
 if response.status_code == 200:
-	with open('.context', 'w') as file1:
+	with open('.cursorrules', 'w') as file1:
 		file1.writelines(buffer)
 
