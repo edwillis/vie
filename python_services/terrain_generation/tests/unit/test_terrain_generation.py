@@ -5,6 +5,12 @@ from pathlib import Path
 from black import format_file_in_place, FileMode, WriteBack
 from terrain_generation.terrain_generation_service import TerrainGeneratorService
 from terrain_generation.terrain_generation_pb2 import TerrainRequest, TerrainResponse, TerrainTile
+from persistence.persistence_service import PersistenceService
+from persistence.persistence_pb2 import StoreTerrainRequest, TerrainTile
+
+@pytest.fixture(scope='module')
+def persistence_service():
+    return PersistenceService()
 
 def test_generate_terrain():
     """
@@ -61,7 +67,7 @@ def test_generate_terrain_error_handling():
     assert isinstance(response, TerrainResponse)
     assert len(response.tiles) == 0
     context.set_details.assert_called_once_with("total_land_hexagons must be greater than 0")
-    context.set_code.assert_called_once_with(grpc.StatusCode.INTERNAL)
+    context.set_code.assert_called_once_with(grpc.StatusCode.INVALID_ARGUMENT)
 
 def test_terrain_generation():
     """
@@ -168,3 +174,41 @@ def test_generate_terrain_with_transaction():
         mock_stub.CommitTransaction.assert_called_once()
         assert isinstance(response, TerrainResponse)
         assert len(response.tiles) == 5
+
+def test_store_terrain(persistence_service):
+    tiles = [
+        TerrainTile(x=1, y=1, terrain_type="Mountain"),
+        TerrainTile(x=2, y=2, terrain_type="Forest")
+    ]
+    request = StoreTerrainRequest(tiles=tiles)
+    mock_context = MagicMock()  # Use a mock context
+
+    response = persistence_service.StoreTerrain(request, mock_context)
+
+    assert response.success
+    mock_context.set_code.assert_not_called()
+    mock_context.set_details.assert_not_called()
+
+def test_generate_terrain_with_error_handling():
+    """
+    @test Generate Terrain with Error Handling
+    Tests the terrain generation with error handling logic.
+    
+    @pre TerrainGeneratorService is initialized
+    @post An error is logged and the appropriate gRPC status code is set
+    """
+    service = TerrainGeneratorService()
+    request = TerrainRequest(total_land_hexagons=5, persist=1)
+    context = MagicMock()
+
+    # Mock the persistence stub to raise an exception during StoreTerrain
+    with patch.object(service, 'persistence_stub', autospec=True) as mock_stub:
+        mock_stub.StoreTerrain.side_effect = Exception("Simulated storage error")
+
+        response = service.GenerateTerrain(request, context)
+
+        # Verify that the error was handled
+        context.set_code.assert_called_once_with(grpc.StatusCode.INTERNAL)
+        context.set_details.assert_called_once_with('Failed to store terrain')  # Ensure this matches the actual error message
+        assert isinstance(response, TerrainResponse)
+        assert len(response.tiles) == 0

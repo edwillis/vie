@@ -14,3 +14,6 @@ pkill -f persistence_service.py
 rm /tmp/*.lock
 
 echo "gateway and Python services stopped."
+
+# Reset terminal to ensure it's in a consistent state
+reset
