@@ -10,8 +10,8 @@ fonttools==4.54.1
 geopandas==1.0.1
 googleapis-common-protos==1.65.0
 greenlet==3.1.1
-grpcio==1.67.1
-grpcio-reflection==1.67.1
+grpcio==1.68.1
+grpcio-reflection==1.68.1
 grpcio-tools==1.67.0
 idna==3.10
 iniconfig==2.0.0
