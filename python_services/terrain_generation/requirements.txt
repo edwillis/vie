@@ -1,5 +1,5 @@
 black==24.10.0
-certifi==2024.8.30
+certifi==2025.1.31
 charset-normalizer==3.4.1
 click==8.1.7
 colorama==0.4.6
@@ -15,7 +15,7 @@ grpcio-reflection==1.68.1
 grpcio-tools==1.68.1
 idna==3.10
 iniconfig==2.0.0
-kiwisolver==1.4.7
+kiwisolver==1.4.8
 linkify-it-py==2.0.3
 markdown-it-py==3.0.0
 matplotlib==3.9.2
@@ -37,12 +37,12 @@ PyGObject==3.50.0
 pyogrio==0.10.0
 pyparsing==3.2.0
 pyproj==3.7.0
-PyQt5-Qt5==5.15.15
+PyQt5-Qt5==5.15.16
 PyQt5_sip==12.15.0
 pytest==8.3.5
 pytest-cov==6.0.0
 python-dateutil==2.9.0.post0
-pytz==2024.2
+pytz==2025.1
 requests==2.32.3
 rich==13.9.4
 setuptools==75.2.0
