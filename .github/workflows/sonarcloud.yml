@@ -93,8 +93,8 @@ jobs:
     - name: Upload ZAP report
       uses: actions/upload-artifact@v4
       with:
-          name: zap-report
-          path: zap_report.html
+          name: report_html.html
+          path: report_html.html
 
     - name: Stop ZAP
       run: docker stop zap
