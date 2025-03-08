@@ -79,7 +79,7 @@ jobs:
           docker exec zap zap-cli -p 8090 report -o zap_report.html -f html
 
     - name: Upload ZAP report
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
           name: zap-report
           path: zap_report.html
