@@ -59,7 +59,7 @@ jobs:
 
     - name: Start application
       run: |
-        ./scripts/start.sh
+        ./script/start.sh
     
         - name: Start ZAP
         run: |
