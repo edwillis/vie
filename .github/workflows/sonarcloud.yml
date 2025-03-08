@@ -61,7 +61,7 @@ jobs:
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
       with:
-        token: ${{ secrets.PAT_ZAP_SECRET }}
+        token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Start application
       run: ./script/start.sh
@@ -69,32 +69,15 @@ jobs:
     - name: ZAP Full Scan
       uses: zaproxy/action-full-scan@v0.12.0
       with:
-        token: ${{ secrets.SONAR_TOKEN }}
         docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
         cmd_options: '-a'
         target: 'http://localhost:3000'
-    # - name: Zap scan
-    #   run: |
-    #     docker run -d --name zap -p 8090:8090 -i owasp/zap2docker-stable zap.sh -daemon -host 0.0.0.0 -port 8090 -config api.disablekey=true
-
-    # - name: Wait for ZAP to start
-    #   run: |
-    #       until curl -s http://localhost:8090/JSON/core/view/version/; do
-    #         echo "Waiting for ZAP to start..."
-    #         sleep 5
-    #       done
-
-    # - name: Run ZAP scan
-    #   run: |
-    #       docker exec zap zap-cli -p 8090 open-url http://localhost:3000
-    #       docker exec zap zap-cli -p 8090 active-scan http://localhost:3000
-    #       docker exec zap zap-cli -p 8090 report -o zap_report.html -f html
 
     - name: Upload ZAP report
       uses: actions/upload-artifact@v4
       with:
-          name: report_html.html
-          path: report_html.html
+        name: report_html.html
+        path: report_html.html
 
     - name: Stop ZAP
       run: docker stop zap
