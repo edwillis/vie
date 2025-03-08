@@ -64,12 +64,11 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Start application
-      run: |
-        ./script/start.sh
+      run: ./script/start.sh
     
-        - name: Start ZAP
-        run: |
-          docker run -d --name zap -p 8090:8090 -i owasp/zap2docker-stable zap.sh -daemon -host 0.0.0.0 -port 8090 -config api.disablekey=true
+    - name: Start ZAP
+      run: |
+        docker run -d --name zap -p 8090:8090 -i owasp/zap2docker-stable zap.sh -daemon -host 0.0.0.0 -port 8090 -config api.disablekey=true
 
     - name: Wait for ZAP to start
       run: |
