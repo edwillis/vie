@@ -79,6 +79,3 @@ jobs:
       with:
         name: report_html.html
         path: report_html.html
-
-    - name: Stop ZAP
-      run: docker stop zap
