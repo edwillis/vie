@@ -35,7 +35,7 @@ pycairo==1.27.0
 Pygments==2.18.0
 PyGObject==3.50.0
 pyogrio==0.10.0
-pyparsing==3.2.0
+pyparsing==3.2.1
 pyproj==3.7.0
 PyQt5-Qt5==5.15.15
 PyQt5_sip==12.15.0
