@@ -56,14 +56,33 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-    # - name: Install SonarScanner
-    #   run: |
-    #     curl -sSLo sonar-scanner-cli.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
-    #     unzip sonar-scanner-cli.zip
-    #     export PATH="$PATH:$(pwd)/sonar-scanner-4.6.2.2472-linux/bin"
 
-    # - name: Upload coverage to SonarCloud
-    #   run: |
-    #     sonar-scanner
-    #   env:
-    #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    - name: Start application
+      run: |
+        ./scripts/start.sh
+    
+        - name: Start ZAP
+        run: |
+          docker run -d --name zap -p 8090:8090 -i owasp/zap2docker-stable zap.sh -daemon -host 0.0.0.0 -port 8090 -config api.disablekey=true
+
+    - name: Wait for ZAP to start
+      run: |
+          until curl -s http://localhost:8090/JSON/core/view/version/; do
+            echo "Waiting for ZAP to start..."
+            sleep 5
+          done
+
+    - name: Run ZAP scan
+      run: |
+          docker exec zap zap-cli -p 8090 open-url http://localhost:3000
+          docker exec zap zap-cli -p 8090 active-scan http://localhost:3000
+          docker exec zap zap-cli -p 8090 report -o zap_report.html -f html
+
+    - name: Upload ZAP report
+      uses: actions/upload-artifact@v2
+      with:
+          name: zap-report
+          path: zap_report.html
+
+    - name: Stop ZAP
+      run: docker stop zap
