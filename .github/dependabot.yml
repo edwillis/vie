@@ -12,8 +12,8 @@ updates:
       interval: "daily"
       time:  "09:00"
       timezone: "America/New_York"
-  - package-ecosystem: "npm" # See documentation for possible values
-    directory: "./javascript_services/vie_ui" # Location of package manifests
+  - package-ecosystem: "npm" 
+    directory: "./javascript_services/vie_ui" 
     schedule:
       interval: "daily"
       time:  "09:00"
