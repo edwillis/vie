@@ -12,3 +12,9 @@ updates:
       interval: "daily"
       time:  "09:00"
       timezone: "America/New_York"
+  - package-ecosystem: "npm" 
+    directory: "./javascript_services/vie_ui" 
+    schedule:
+      interval: "daily"
+      time:  "09:00"
+      timezone: "America/New_York"
