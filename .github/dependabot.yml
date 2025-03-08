@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: "pip" # See documentation for possible values
+    directory: "./python_services/persistence" # Location of package manifests
+    schedule:
+      interval: "daily"
+      time:  "09:00"
+      timezone: "America/New_York"
+  - package-ecosystem: "pip" # See documentation for possible values
+    directory: "./python_services/terrain_generation" # Location of package manifests
+    schedule:
+      interval: "daily"
+      time:  "09:00"
+      timezone: "America/New_York"
