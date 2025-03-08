@@ -10,8 +10,8 @@ fonttools==4.54.1
 geopandas==1.0.1
 googleapis-common-protos==1.65.0
 greenlet==3.1.1
-grpcio==1.67.1
-grpcio-reflection==1.67.1
+grpcio==1.68.1
+grpcio-reflection==1.68.1
 grpcio-tools==1.67.0
 idna==3.10
 iniconfig==2.0.0
@@ -27,7 +27,7 @@ numpy==2.1.2
 packaging==24.1
 pandas==2.2.3
 pathspec==0.12.1
-pillow==11.0.0
+pillow==11.1.0
 platformdirs==4.3.6
 pluggy==1.5.0
 protobuf==5.29.3
@@ -47,7 +47,7 @@ requests==2.32.3
 rich==13.9.4
 setuptools==75.2.0
 shapely==2.0.6
-six==1.16.0
+six==1.17.0
 SQLAlchemy==2.0.36
 typing_extensions==4.12.2
 tzdata==2024.2
