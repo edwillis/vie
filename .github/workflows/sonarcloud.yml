@@ -39,10 +39,12 @@ jobs:
 
     - name: Install Envoy
       run: |
-        curl -sL 'https://deb.dl.getenvoy.io/public/gpg.8115BA8E629CC074.key' | sudo gpg --dearmor -o /usr/share/keyrings/getenvoy-keyring.gpg
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/getenvoy-keyring.gpg] https://deb.dl.getenvoy.io/public/deb/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/getenvoy.list
-        sudo apt-get update
-        sudo apt-get install -y getenvoy-envoy
+        # Direct binary installation - most reliable method
+        echo "Installing Envoy binary directly"
+        curl -Lo /tmp/envoy https://github.com/envoyproxy/envoy/releases/download/v1.32.1/envoy-1.32.1-linux-x86_64
+        sudo install -m 755 /tmp/envoy /usr/local/bin/envoy
+        # Verify installation
+        envoy --version
 
     - name: Set up Python
       uses: actions/setup-python@v2
