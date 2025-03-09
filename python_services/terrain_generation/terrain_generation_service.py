@@ -20,9 +20,26 @@ import os
 from grpc_reflection.v1alpha import reflection
 from common.logging_config import setup_logger
 from persistence.persistence_pb2 import BeginTransactionRequest
+import ssl
+from pathlib import Path
 
 # Configure logging using the common logging configuration
 logger = setup_logger("TerrainGeneratorService")
+
+# Define the path to the certificates
+project_root = Path(__file__).parent.parent.parent  # Navigate up to the project root
+cert_path = project_root / "certs" / "localhost.pem"
+key_path = project_root / "certs" / "localhost-key.pem"
+
+# Load the TLS credentials
+with open(cert_path, "rb") as f:
+    cert_data = f.read()
+with open(key_path, "rb") as f:
+    key_data = f.read()
+
+server_credentials = grpc.ssl_server_credentials(
+    [(key_data, cert_data)], root_certificates=None, require_client_auth=False
+)
 
 
 class TerrainGeneratorService(
@@ -36,10 +53,20 @@ class TerrainGeneratorService(
         """
         @brief Initializes the TerrainGeneratorService.
         """
+        # Create channel options to disable SSL verification (for testing only)
+        channel_options = [
+            ("grpc.ssl_target_name_override", "localhost"),
+            ("grpc.default_authority", "localhost"),
+        ]
+
+        # Use SSL but with verification disabled
+        credentials = grpc.ssl_channel_credentials(root_certificates=cert_data)
+
+        # Connect with secure but unverified channel
         self.persistence_stub = PersistenceServiceStub(
-            grpc.insecure_channel("localhost:50052")
+            grpc.secure_channel("localhost:50052", credentials, options=channel_options)
         )
-        logger.info("TerrainGeneratorService initialized.")
+        logger.info("TerrainGeneratorService initialized with secure channel.")
 
     def GenerateTerrain(self, request, context):
         """
@@ -328,10 +355,11 @@ def serve():
         )
         reflection.enable_server_reflection(SERVICE_NAMES, server)
 
-        port = 50051
-        server.add_insecure_port(f"[::]:{port}")
+        # Revert to using TLS
+        server.add_secure_port("[::]:50051", server_credentials)
+
         server.start()
-        logger.info(f"Terrain Generation Service started on port {port}")
+        logger.info(f"Terrain Generation Service started on port 50051")
         server.wait_for_termination()
     except Exception as e:
         logger.error(f"Error starting Terrain Generation Service: {e}")

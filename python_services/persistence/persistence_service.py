@@ -15,6 +15,8 @@ from grpc_reflection.v1alpha import reflection
 from common.logging_config import setup_logger
 import json
 from collections import defaultdict
+import ssl
+from pathlib import Path
 
 # Configure logging using the common logging configuration
 logger = setup_logger("PersistenceService")
@@ -23,6 +25,23 @@ logger = setup_logger("PersistenceService")
 Base = declarative_base()
 engine = create_engine('sqlite:///persistence_service.db')
 DbSession = sessionmaker(bind=engine)
+
+# Define the path to the certificates
+project_root = Path(__file__).parent.parent.parent  # Navigate up to the project root
+cert_path = project_root / "certs" / "localhost.pem"  
+key_path = project_root / "certs" / "localhost-key.pem"
+
+# Load the TLS credentials
+with open(cert_path, 'rb') as f:
+    cert_data = f.read()
+with open(key_path, 'rb') as f:
+    key_data = f.read()
+
+server_credentials = grpc.ssl_server_credentials(
+    [(key_data, cert_data)],
+    root_certificates=None,
+    require_client_auth=False
+)
 
 class TerrainTile(Base):
     __tablename__ = 'terrain_tiles'
@@ -166,10 +185,11 @@ def serve():
         )
         reflection.enable_server_reflection(SERVICE_NAMES, server)
 
-        port = 50052
-        server.add_insecure_port(f"[::]:{port}")
+        # Replace any existing server.add_insecure_port with:
+        server.add_secure_port('[::]:50052', server_credentials)
+
         server.start()
-        logger.info(f"Persistence Service started on port {port}")
+        logger.info(f"Persistence Service started on port 50052")
         server.wait_for_termination()
     except Exception as e:
         logger.error(f"Error starting Persistence Service: {e}")

@@ -38,12 +38,27 @@ add_custom_command(
     COMMENT "Generating gRPC and Protobuf code for Python Terrain Generation Service"
 )
 
-# Add custom target to generate protobufs
+# Add protobuf and gRPC-web generation for JavaScript services
+add_custom_command(
+    OUTPUT ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation/terrain_generation_pb.js
+           ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation/terrain_generation_grpc_web_pb.js
+    COMMAND protoc
+            -I=${CMAKE_SOURCE_DIR}/python_services/protos
+            --js_out=import_style=commonjs:${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos
+            --grpc-web_out=import_style=commonjs,mode=grpcwebtext:${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos
+            terrain_generation/terrain_generation.proto
+    DEPENDS ${CMAKE_SOURCE_DIR}/python_services/protos/terrain_generation/terrain_generation.proto
+    COMMENT "Generating JavaScript gRPC-web code for Terrain Generation"
+)
+
+# Update the generate_protos target to include JS outputs
 add_custom_target(generate_protos ALL
                   DEPENDS ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_pb2.py
                           ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_pb2_grpc.py
                           ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2.py
-                          ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2_grpc.py)
+                          ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2_grpc.py
+                          ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation/terrain_generation_pb.js
+                          ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation/terrain_generation_grpc_web_pb.js)
 
 # Add custom target to recreate the .cursorrules file
 add_custom_target(cursorrules

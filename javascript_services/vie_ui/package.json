@@ -43,6 +43,9 @@
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.2",
-    "prettier": "^3.4.1"
+    "prettier": "^3.4.1",
+    "protobufjs": "^7.2.4",
+    "protoc-gen-js": "^3.21.4-4",
+    "protoc-gen-grpc-web": "^1.5.0"
   }
 }
