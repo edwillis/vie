@@ -135,41 +135,33 @@ jobs:
         mkcert -install
         mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
         
-    # Run tests and start app in parallel
-    - name: Run tests and ZAP scan
+    - name: Run tests
       run: |
-        # Start the app in background
-        ./script/start.sh &
-        APP_PID=$!
-        
-        # Wait for app to initialize
-        sleep 5
-        
-        # Start ZAP scan in background
+        cd build && make run_tests
+      id: tests
+
+    - name: Start application
+      if: success()
+      run: |
+        ./script/start.sh
+        echo "Waiting for app to fully initialize..."
+        sleep 10
+      
+    - name: Run ZAP scan
+      if: success()
+      run: |
+        echo "Starting ZAP scan..."
         docker run --rm -v $(pwd):/zap/wrk/:rw --network=host \
           -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
           -c certificate.accept.unsecure.certs=true \
-          -t https://localhost:3001 -g gen.conf -r testreport.html > zap_output.log 2>&1 &
-        ZAP_PID=$!
-        
-        # Run tests (in foreground)
-        cd build && make run_tests
-        TEST_EXIT=$?
-        
-        # Check ZAP status
-        wait $ZAP_PID
-        ZAP_EXIT=$?
-        
-        # Clean up app process
-        kill $APP_PID || true
-        
-        # Report results
-        echo "Test exit code: $TEST_EXIT"
-        echo "ZAP scan exit code: $ZAP_EXIT"
-        
-        # Exit with error if either job failed
-        exit $(( $TEST_EXIT || $ZAP_EXIT ))
-    
+          -t https://localhost:3001 -g gen.conf -r testreport.html
+      
+    # Stop the app in a cleanup step
+    - name: Stop application
+      if: always()
+      run: |
+        ./script/stop.sh
+
     # Upload results
     - name: Upload coverage reports
       uses: codecov/codecov-action@v5
