@@ -173,6 +173,6 @@ jobs:
         name: zap-report
         path: testreport.html
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true  # Cancels pending/running workflows when new pushes happen
+#concurrency:
+#  group: ${{ github.workflow }}-${{ github.ref }}
+#  cancel-in-progress: true  # Cancels pending/running workflows when new pushes happen
