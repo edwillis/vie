@@ -150,11 +150,15 @@ jobs:
     - name: Run ZAP scan
       if: success()
       run: |
+        # Create directory with proper permissions
+        mkdir -p zap_output
+        chmod 777 zap_output
+        
         echo "Starting ZAP scan..."
-        docker run --rm -v $(pwd):/zap/wrk/:rw --network=host \
+        docker run --rm -v $(pwd)/zap_output:/zap/wrk/:rw --network=host \
           -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
           -z "certificate.accept.unsecure.certs=true" \
-          -t https://localhost:3001 -g gen.conf -r testreport.html
+          -t https://localhost:3001 -r testreport.html
       
     # Stop the app in a cleanup step
     - name: Stop application
