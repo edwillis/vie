@@ -20,7 +20,7 @@ jobs:
 
     # Cache APT packages
     - name: Cache APT packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: /var/cache/apt/archives
         key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/sonarcloud.yml') }}
@@ -43,7 +43,7 @@ jobs:
 
     # Cache Python dependencies
     - name: Cache Python dependencies
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('python_services/**/requirements.txt') }}
@@ -58,7 +58,7 @@ jobs:
     
     # Cache JavaScript dependencies
     - name: Cache JavaScript dependencies
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: javascript_services/vie_ui/node_modules
         key: ${{ runner.os }}-node-${{ hashFiles('javascript_services/vie_ui/package-lock.json') }}
@@ -79,7 +79,7 @@ jobs:
 
     # Cache mkcert data directory
     - name: Cache mkcert data
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/Library/Application Support/mkcert
         key: ${{ runner.os }}-mkcert
@@ -95,7 +95,7 @@ jobs:
 
     # Cache CMake build artifacts
     - name: Cache CMake build
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: build
         key: ${{ runner.os }}-cmake-${{ hashFiles('CMakeLists.txt', 'python_services/**/*.proto') }}
@@ -113,7 +113,7 @@ jobs:
 
     # Cache SSL certificates
     - name: Cache SSL certificates
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: certs
         key: ${{ runner.os }}-ssl-certs
