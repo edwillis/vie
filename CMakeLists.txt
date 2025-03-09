@@ -97,3 +97,17 @@ add_custom_target(show_coverage
                   DEPENDS run_tests
                   COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_SOURCE_DIR}/script/show_coverage.sh
                   COMMENT "Running Python unit tests and showing the coverage report in the browser")
+
+# Find where protoc-gen-js and protoc-gen-grpc-web are installed
+find_program(PROTOC_GEN_JS protoc-gen-js 
+  PATHS ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/node_modules/.bin
+  NO_DEFAULT_PATH
+)
+
+find_program(PROTOC_GEN_GRPC_WEB protoc-gen-grpc-web
+  PATHS ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/node_modules/.bin
+  NO_DEFAULT_PATH
+)
+
+# Use these paths in your protoc commands by modifying the PATH environment variable
+set(ENV{PATH} "${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/node_modules/.bin:$ENV{PATH}")

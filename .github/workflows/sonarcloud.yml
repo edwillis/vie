@@ -38,7 +38,13 @@ jobs:
       run: |
         cd javascript_services/vie_ui
         npm install
-        cd ../..
+        chmod +x node_modules/.bin/protoc-gen-js || echo "File not found or already executable"
+        chmod +x node_modules/.bin/protoc-gen-grpc-web || echo "File not found or already executable"
+        echo "PATH=$PWD/node_modules/.bin:$PATH" >> $GITHUB_ENV
+        # Create symlinks to standard locations as fallback
+        sudo mkdir -p /usr/local/bin
+        sudo ln -sf $PWD/node_modules/.bin/protoc-gen-js /usr/local/bin/ || echo "Could not create symlink"
+        sudo ln -sf $PWD/node_modules/.bin/protoc-gen-grpc-web /usr/local/bin/ || echo "Could not create symlink"
 
     - name: Install mkcert
       run: |
@@ -60,41 +66,25 @@ jobs:
         echo "==== Current PATH value ===="
         echo $PATH
         
-        echo "==== NPM global bin directory ===="
-        npm bin -g
+        echo "==== NPM version ===="
+        npm --version
         
-        echo "==== NPM local bin directory ===="
+        echo "==== Node modules structure ===="
         cd javascript_services/vie_ui
-        npm bin
+        ls -la node_modules/.bin/ || echo "No .bin directory found"
         
         echo "==== Check if plugin exists in node_modules ===="
-        ls -la $(npm bin)/protoc-gen-js || echo "Not found"
-        ls -la $(npm bin)/protoc-gen-grpc-web || echo "Not found"
-        
-        echo "==== Check plugin executable permissions ===="
-        if [ -f $(npm bin)/protoc-gen-js ]; then
-          ls -la $(npm bin)/protoc-gen-js
-          file $(npm bin)/protoc-gen-js
-        fi
+        ls -la node_modules/.bin/protoc-gen-js || echo "protoc-gen-js not found"
+        ls -la node_modules/.bin/protoc-gen-grpc-web || echo "protoc-gen-grpc-web not found"
         
         echo "==== Where protoc looks for plugins ===="
         which protoc
         protoc --version
         
-        echo "==== List of all node_modules/.bin contents ===="
-        ls -la $(npm bin)
-        
         echo "==== Check npm list output ===="
-        npm list protoc-gen-js || echo "Not found in direct dependencies"
-        npm list --all | grep protoc || echo "Not found in dependency tree"
+        npm list | grep protoc || echo "No protoc packages found in dependencies"
         
-        echo "==== Testing protoc plugin invocation directly ===="
-        if [ -f $(npm bin)/protoc-gen-js ]; then
-          echo "Trying to run the plugin directly:"
-          $(npm bin)/protoc-gen-js --version || echo "Failed to run with exit code $?"
-        fi
-        
-        echo "==== Checking if the plugin can be found in PATH ===="
+        echo "==== Checking globally available plugins ===="
         which protoc-gen-js || echo "protoc-gen-js not found in PATH"
         which protoc-gen-grpc-web || echo "protoc-gen-grpc-web not found in PATH"
 
