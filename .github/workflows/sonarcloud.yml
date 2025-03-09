@@ -34,8 +34,15 @@ jobs:
         # Use -o to set the APT directory - this will use the cached directory
         sudo apt-get install -y -o dir::cache::archives=/var/cache/apt/archives \
           libcairo2-dev libgirepository1.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev \
-          envoy build-essential autoconf libtool pkg-config cmake doxygen \
+          build-essential autoconf libtool pkg-config cmake doxygen \
           libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert
+
+    - name: Install Envoy
+      run: |
+        curl -sL 'https://deb.dl.getenvoy.io/public/gpg.8115BA8E629CC074.key' | sudo gpg --dearmor -o /usr/share/keyrings/getenvoy-keyring.gpg
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/getenvoy-keyring.gpg] https://deb.dl.getenvoy.io/public/deb/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/getenvoy.list
+        sudo apt-get update
+        sudo apt-get install -y getenvoy-envoy
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -173,6 +180,6 @@ jobs:
         name: zap-report
         path: testreport.html
 
-#concurrency:
-#  group: ${{ github.workflow }}-${{ github.ref }}
-#  cancel-in-progress: true  # Cancels pending/running workflows when new pushes happen
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true  # Cancels pending/running workflows when new pushes happen
