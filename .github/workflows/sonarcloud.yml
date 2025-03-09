@@ -39,27 +39,10 @@ jobs:
 
     - name: Install Envoy
       run: |
-        curl -sL 'https://deb.dl.getenvoy.io/public/gpg.8115BA8E629CC074.key' | sudo gpg --dearmor -o /usr/share/keyrings/getenvoy-keyring.gpg
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/getenvoy-keyring.gpg] https://deb.dl.getenvoy.io/public/deb/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/getenvoy.list
+        curl -sL 'https://deb.dl.getenvoy.io/public/gpg.8115BA8E629CC074.key' | gpg --dearmor -o /usr/share/keyrings/getenvoy-keyring.gpg
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/getenvoy-keyring.gpg] https://deb.dl.getenvoy.io/public/deb/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/getenvoy.list
         sudo apt-get update
-        
-        # List all packages in the repository
-        echo "All packages from GetEnvoy repo:"
-        grep -r "deb.dl.getenvoy.io" /var/lib/apt/lists/ | sort
-        
-        # Search for packages containing 'envoy'
-        echo "Searching for packages with 'envoy' in the name:"
-        apt-cache search envoy
-        
-        # Download directly - this is more reliable
-        echo "Downloading Envoy directly..."
-        cd /tmp
-        curl -LO https://github.com/envoyproxy/envoy/releases/download/v1.31.0/envoy-1.31.0-linux-x86_64.tar.gz
-        tar xzf envoy-1.31.0-linux-x86_64.tar.gz
-        sudo mv envoy-1.31.0-linux-x86_64/bin/envoy /usr/local/bin/
-        sudo chmod +x /usr/local/bin/envoy
-        echo "Envoy version:"
-        envoy --version
+        sudo apt-get install -y getenvoy-envoy
 
     - name: Set up Python
       uses: actions/setup-python@v2
