@@ -153,7 +153,7 @@ jobs:
         echo "Starting ZAP scan..."
         docker run --rm -v $(pwd):/zap/wrk/:rw --network=host \
           -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-          -c certificate.accept.unsecure.certs=true \
+          -z "certificate.accept.unsecure.certs=true" \
           -t https://localhost:3001 -g gen.conf -r testreport.html
       
     # Stop the app in a cleanup step
