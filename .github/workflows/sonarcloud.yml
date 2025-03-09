@@ -9,166 +9,16 @@ on:
       - master  # Triggers on PRs targeting the master branch
 
 jobs:
-  # First try with high-powered runner
-  build-high-power:
-    runs-on: ubuntu-latest-16-core
-    continue-on-error: true
-    steps:
-    - name: Set runner status
-      id: set-status
-      run: echo "success=true" >> $GITHUB_OUTPUT
-    - name: Checkout code
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0  # Fetch all history for SonarCloud
-
-    # Cache APT packages
-    - name: Cache APT packages
-      uses: actions/cache@v3
-      with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/sonarcloud.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-apt-
-
-    - name: Install os dependencies
-      run: |
-        sudo apt-get update
-        # Use -o to set the APT directory - this will use the cached directory
-        sudo apt-get install -y -o dir::cache::archives=/var/cache/apt/archives \
-          libcairo2-dev libgirepository1.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev \
-          build-essential autoconf libtool pkg-config cmake doxygen \
-          libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert
-
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.12'
-
-    # Cache Python dependencies
-    - name: Cache Python dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('python_services/**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Install python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r python_services/terrain_generation/requirements.txt
-        pip install -r python_services/persistence/requirements.txt
-    
-    # Cache JavaScript dependencies
-    - name: Cache JavaScript dependencies
-      uses: actions/cache@v3
-      with:
-        path: javascript_services/vie_ui/node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('javascript_services/vie_ui/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
-        
-    - name: Install javascript dependencies
-      run: |
-        cd javascript_services/vie_ui
-        npm install 
-        chmod +x node_modules/.bin/protoc-gen-js || echo "File not found or already executable"
-        chmod +x node_modules/.bin/protoc-gen-grpc-web || echo "File not found or already executable"
-        echo "PATH=$PWD/node_modules/.bin:$PATH" >> $GITHUB_ENV
-        # Create symlinks to standard locations as fallback
-        sudo mkdir -p /usr/local/bin
-        sudo ln -sf $PWD/node_modules/.bin/protoc-gen-js /usr/local/bin/ || echo "Could not create symlink"
-        sudo ln -sf $PWD/node_modules/.bin/protoc-gen-grpc-web /usr/local/bin/ || echo "Could not create symlink"
-
-    # Cache mkcert data directory
-    - name: Cache mkcert data
-      uses: actions/cache@v3
-      with:
-        path: ~/Library/Application Support/mkcert
-        key: ${{ runner.os }}-mkcert
-
-    - name: Install mkcert
-      run: |
-        mkcert -install
-
-    - name: Install CMake
-      uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '3.28.3'  # Specify the required CMake version
-
-    # Cache CMake build artifacts
-    - name: Cache CMake build
-      uses: actions/cache@v3
-      with:
-        path: build
-        key: ${{ runner.os }}-cmake-${{ hashFiles('CMakeLists.txt', 'python_services/**/*.proto') }}
-        restore-keys: |
-          ${{ runner.os }}-cmake-
-
-    - name: Create build directory
-      run: mkdir -p build
-
-    - name: Configure CMake
-      run: cmake -S . -B build
-
-    - name: Build with CMake
-      run: cmake --build build -j $(nproc)  # Use parallel compilation
-
-    # Cache SSL certificates
-    - name: Cache SSL certificates
-      uses: actions/cache@v3
-      with:
-        path: certs
-        key: ${{ runner.os }}-ssl-certs
-        
-    - name: Generate SSL certificates
-      run: |
-        if [ ! -f certs/localhost.pem ]; then
-          mkdir -p certs
-          echo "Generating SSL certificates..."
-          mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
-        else
-          echo "Using cached SSL certificates"
-        fi
-        
-    - name: Run tests with Coverage
-      working-directory: build
-      run: make run_tests
-
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v5
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-
-    - name: Start application
-      run: ./script/start.sh 
-      
-    - name: ZAP Full Scan
-      uses: zaproxy/action-full-scan@v0.12.0
-      with:
-        token: ${{ secrets.PAT_ZAP_SECRET }}
-        docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
-        cmd_options: '-a -config certificate.accept.unsecure.certs=true'
-        target: 'https://localhost:3001'
-
-    - name: Upload ZAP report
-      uses: actions/upload-artifact@v4
-      with:
-        name: report_html.html
-        path: report_html.html
-
-  # Fallback to standard runner if high-powered fails
-  build-fallback:
-    needs: build-high-power
-    if: ${{ !needs.build-high-power.outputs.success }}
+  build-and-test:
     runs-on: ubuntu-latest
+    
     steps:
+    # Setup phase
     - name: Checkout code
       uses: actions/checkout@v2
       with:
-        fetch-depth: 0  # Fetch all history for SonarCloud
-
+        fetch-depth: 0
+    
     # Cache APT packages
     - name: Cache APT packages
       uses: actions/cache@v3
@@ -185,7 +35,7 @@ jobs:
         sudo apt-get install -y -o dir::cache::archives=/var/cache/apt/archives \
           libcairo2-dev libgirepository1.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev \
           build-essential autoconf libtool pkg-config cmake doxygen \
-          libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert
+          libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert envoy
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -269,41 +119,59 @@ jobs:
         path: certs
         key: ${{ runner.os }}-ssl-certs
         
+    # Generate SSL certificates
     - name: Generate SSL certificates
       run: |
-        if [ ! -f certs/localhost.pem ]; then
-          mkdir -p certs
-          echo "Generating SSL certificates..."
-          mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
-        else
-          echo "Using cached SSL certificates"
-        fi
+        mkdir -p certs
+        mkcert -install
+        mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
         
-    - name: Run tests with Coverage
-      working-directory: build
-      run: make run_tests
-
-    - name: Upload coverage reports to Codecov
+    # Run tests and start app in parallel
+    - name: Run tests and ZAP scan
+      run: |
+        # Start the app in background
+        ./script/start.sh &
+        APP_PID=$!
+        
+        # Wait for app to initialize
+        sleep 5
+        
+        # Start ZAP scan in background
+        docker run --rm -v $(pwd):/zap/wrk/:rw --network=host \
+          -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+          -c certificate.accept.unsecure.certs=true \
+          -t https://localhost:3001 -g gen.conf -r testreport.html > zap_output.log 2>&1 &
+        ZAP_PID=$!
+        
+        # Run tests (in foreground)
+        cd build && make run_tests
+        TEST_EXIT=$?
+        
+        # Check ZAP status
+        wait $ZAP_PID
+        ZAP_EXIT=$?
+        
+        # Clean up app process
+        kill $APP_PID || true
+        
+        # Report results
+        echo "Test exit code: $TEST_EXIT"
+        echo "ZAP scan exit code: $ZAP_EXIT"
+        
+        # Exit with error if either job failed
+        exit $(( $TEST_EXIT || $ZAP_EXIT ))
+    
+    # Upload results
+    - name: Upload coverage reports
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-
-    - name: Start application
-      run: ./script/start.sh 
-      
-    - name: ZAP Full Scan
-      uses: zaproxy/action-full-scan@v0.12.0
-      with:
-        token: ${{ secrets.PAT_ZAP_SECRET }}
-        docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
-        cmd_options: '-a -config certificate.accept.unsecure.certs=true'
-        target: 'https://localhost:3001'
-
+        
     - name: Upload ZAP report
       uses: actions/upload-artifact@v4
       with:
-        name: report_html.html
-        path: report_html.html
+        name: zap-report
+        path: testreport.html
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
