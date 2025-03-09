@@ -42,6 +42,7 @@ add_custom_command(
 add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation/terrain_generation_pb.js
            ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation/terrain_generation_grpc_web_pb.js
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation
     COMMAND protoc
             -I=${CMAKE_SOURCE_DIR}/python_services/protos
             --js_out=import_style=commonjs:${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos
