@@ -11,33 +11,64 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # Fetch all history for SonarCloud
+
+    # Cache APT packages
+    - name: Cache APT packages
+      uses: actions/cache@v2
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/sonarcloud.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-apt-
+
+    - name: Install os dependencies
+      run: |
+        sudo apt-get update
+        # Use -o to set the APT directory - this will use the cached directory
+        sudo apt-get install -y -o dir::cache::archives=/var/cache/apt/archives \
+          libcairo2-dev libgirepository1.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev \
+          build-essential autoconf libtool pkg-config cmake doxygen \
+          libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert
 
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.12'
 
-    - name: Install os dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libcairo2-dev libgirepository1.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev 
-        sudo apt-get install -y build-essential autoconf libtool pkg-config cmake doxygen
-        sudo apt-get install -y libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert
+    # Cache Python dependencies
+    - name: Cache Python dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('python_services/**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
 
     - name: Install python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r python_services/terrain_generation/requirements.txt
         pip install -r python_services/persistence/requirements.txt
+    
+    # Cache JavaScript dependencies
+    - name: Cache JavaScript dependencies
+      uses: actions/cache@v2
+      with:
+        path: javascript_services/vie_ui/node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('javascript_services/vie_ui/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
         
     - name: Install javascript dependencies
       run: |
         cd javascript_services/vie_ui
-        npm install
+        npm ci  # Using ci instead of install for more reproducible builds
         chmod +x node_modules/.bin/protoc-gen-js || echo "File not found or already executable"
         chmod +x node_modules/.bin/protoc-gen-grpc-web || echo "File not found or already executable"
         echo "PATH=$PWD/node_modules/.bin:$PATH" >> $GITHUB_ENV
@@ -45,6 +76,13 @@ jobs:
         sudo mkdir -p /usr/local/bin
         sudo ln -sf $PWD/node_modules/.bin/protoc-gen-js /usr/local/bin/ || echo "Could not create symlink"
         sudo ln -sf $PWD/node_modules/.bin/protoc-gen-grpc-web /usr/local/bin/ || echo "Could not create symlink"
+
+    # Cache mkcert data directory
+    - name: Cache mkcert data
+      uses: actions/cache@v2
+      with:
+        path: ~/Library/Application Support/mkcert
+        key: ${{ runner.os }}-mkcert
 
     - name: Install mkcert
       run: |
@@ -55,18 +93,41 @@ jobs:
       with:
         cmake-version: '3.28.3'  # Specify the required CMake version
 
+    # Cache CMake build artifacts
+    - name: Cache CMake build
+      uses: actions/cache@v2
+      with:
+        path: build
+        key: ${{ runner.os }}-cmake-${{ hashFiles('CMakeLists.txt', 'python_services/**/*.proto') }}
+        restore-keys: |
+          ${{ runner.os }}-cmake-
+
     - name: Create build directory
-      run: mkdir build
+      run: mkdir -p build
 
     - name: Configure CMake
       run: cmake -S . -B build
 
     - name: Build with CMake
-      run: cmake --build build
-    # must happen here so the cert is created which the tests depend on
-    - name: Start application
-      run: ./script/start.sh &
-    
+      run: cmake --build build -j $(nproc)  # Use parallel compilation
+
+    # Cache SSL certificates
+    - name: Cache SSL certificates
+      uses: actions/cache@v2
+      with:
+        path: certs
+        key: ${{ runner.os }}-ssl-certs
+        
+    - name: Generate SSL certificates
+      run: |
+        if [ ! -f certs/localhost.pem ]; then
+          mkdir -p certs
+          echo "Generating SSL certificates..."
+          mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
+        else
+          echo "Using cached SSL certificates"
+        fi
+        
     - name: Run tests with Coverage
       working-directory: build
       run: make run_tests
@@ -76,6 +137,9 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
 
+    - name: Start application
+      run: ./script/start.sh 
+      
     - name: ZAP Full Scan
       uses: zaproxy/action-full-scan@v0.12.0
       with:
