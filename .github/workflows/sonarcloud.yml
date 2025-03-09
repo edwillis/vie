@@ -68,7 +68,7 @@ jobs:
     - name: Install javascript dependencies
       run: |
         cd javascript_services/vie_ui
-        npm ci  # Using ci instead of install for more reproducible builds
+        npm install 
         chmod +x node_modules/.bin/protoc-gen-js || echo "File not found or already executable"
         chmod +x node_modules/.bin/protoc-gen-grpc-web || echo "File not found or already executable"
         echo "PATH=$PWD/node_modules/.bin:$PATH" >> $GITHUB_ENV
