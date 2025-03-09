@@ -61,36 +61,12 @@ jobs:
     - name: Configure CMake
       run: cmake -S . -B build
 
-    - name: Debug protoc-gen-js issues
-      run: |
-        echo "==== Current PATH value ===="
-        echo $PATH
-        
-        echo "==== NPM version ===="
-        npm --version
-        
-        echo "==== Node modules structure ===="
-        cd javascript_services/vie_ui
-        ls -la node_modules/.bin/ || echo "No .bin directory found"
-        
-        echo "==== Check if plugin exists in node_modules ===="
-        ls -la node_modules/.bin/protoc-gen-js || echo "protoc-gen-js not found"
-        ls -la node_modules/.bin/protoc-gen-grpc-web || echo "protoc-gen-grpc-web not found"
-        
-        echo "==== Where protoc looks for plugins ===="
-        which protoc
-        protoc --version
-        
-        echo "==== Check npm list output ===="
-        npm list | grep protoc || echo "No protoc packages found in dependencies"
-        
-        echo "==== Checking globally available plugins ===="
-        which protoc-gen-js || echo "protoc-gen-js not found in PATH"
-        which protoc-gen-grpc-web || echo "protoc-gen-grpc-web not found in PATH"
-
     - name: Build with CMake
       run: cmake --build build
-
+    # must happen here so the cert is created which the tests depend on
+    - name: Start application
+      run: ./script/start.sh
+    
     - name: Run tests with Coverage
       working-directory: build
       run: make run_tests
@@ -100,9 +76,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
 
-    - name: Start application
-      run: ./script/start.sh
-    
     - name: ZAP Full Scan
       uses: zaproxy/action-full-scan@v0.12.0
       with:
