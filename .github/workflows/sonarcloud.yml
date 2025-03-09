@@ -55,6 +55,49 @@ jobs:
     - name: Configure CMake
       run: cmake -S . -B build
 
+    - name: Debug protoc-gen-js issues
+      run: |
+        echo "==== Current PATH value ===="
+        echo $PATH
+        
+        echo "==== NPM global bin directory ===="
+        npm bin -g
+        
+        echo "==== NPM local bin directory ===="
+        cd javascript_services/vie_ui
+        npm bin
+        
+        echo "==== Check if plugin exists in node_modules ===="
+        ls -la $(npm bin)/protoc-gen-js || echo "Not found"
+        ls -la $(npm bin)/protoc-gen-grpc-web || echo "Not found"
+        
+        echo "==== Check plugin executable permissions ===="
+        if [ -f $(npm bin)/protoc-gen-js ]; then
+          ls -la $(npm bin)/protoc-gen-js
+          file $(npm bin)/protoc-gen-js
+        fi
+        
+        echo "==== Where protoc looks for plugins ===="
+        which protoc
+        protoc --version
+        
+        echo "==== List of all node_modules/.bin contents ===="
+        ls -la $(npm bin)
+        
+        echo "==== Check npm list output ===="
+        npm list protoc-gen-js || echo "Not found in direct dependencies"
+        npm list --all | grep protoc || echo "Not found in dependency tree"
+        
+        echo "==== Testing protoc plugin invocation directly ===="
+        if [ -f $(npm bin)/protoc-gen-js ]; then
+          echo "Trying to run the plugin directly:"
+          $(npm bin)/protoc-gen-js --version || echo "Failed to run with exit code $?"
+        fi
+        
+        echo "==== Checking if the plugin can be found in PATH ===="
+        which protoc-gen-js || echo "protoc-gen-js not found in PATH"
+        which protoc-gen-grpc-web || echo "protoc-gen-grpc-web not found in PATH"
+
     - name: Build with CMake
       run: cmake --build build
 
