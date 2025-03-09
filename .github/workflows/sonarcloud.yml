@@ -34,8 +34,8 @@ jobs:
         # Use -o to set the APT directory - this will use the cached directory
         sudo apt-get install -y -o dir::cache::archives=/var/cache/apt/archives \
           libcairo2-dev libgirepository1.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev \
-          build-essential autoconf libtool pkg-config cmake doxygen \
-          libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert envoy
+          envoy build-essential autoconf libtool pkg-config cmake doxygen \
+          libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert
 
     - name: Set up Python
       uses: actions/setup-python@v2
