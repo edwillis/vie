@@ -65,7 +65,7 @@ jobs:
       run: cmake --build build
     # must happen here so the cert is created which the tests depend on
     - name: Start application
-      run: ./script/start.sh
+      run: ./script/start.sh &
     
     - name: Run tests with Coverage
       working-directory: build
