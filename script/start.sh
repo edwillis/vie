@@ -12,6 +12,9 @@ TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")  # Generates a timestamp to uniquely name
 # Define the log file path using the generated timestamp
 LOG_FILE="$SCRIPT_DIR/../logs/$TIMESTAMP.log"  # Sets the log file path in the 'logs' directory
 
+# Generate self-signed certificates for localhost
+mkcert -cert-file "$SCRIPT_DIR/../localhost.pem" -key-file "$SCRIPT_DIR/../localhost-key.pem" localhost
+
 # Start Envoy with the configuration in ./config/envoy.yaml and redirect logs to the log file
 envoy -c "$SCRIPT_DIR/../config/envoy.yaml" --log-level info >> "$LOG_FILE" 2>&1 &  # Starts Envoy and redirects both stdout and stderr to the log file
 
