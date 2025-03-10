@@ -1,16 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import * as protobuf from 'protobufjs';
-import { TerrainGenerationServiceClient } from '../protos/terrain_generation/terrain_generation_grpc_web_pb';
-
-// Import the generated proto modules
-// Note: These imports may vary based on how your proto files are packaged
 import * as terrainMessages from '../protos/terrain_generation/terrain_generation_pb';
 
 const TerrainMapContainer = () => {
-  // Removed unused variables
-  // const [hexCount] = useState(50);
-  // const [root, setRoot] = useState(null);
-  
   // Load the proto definition directly
   useEffect(() => {
     protobuf.load('/proto/terrain_generation.proto')
