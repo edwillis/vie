@@ -52,4 +52,4 @@ SQLAlchemy==2.0.36
 typing_extensions==4.12.2
 tzdata==2024.2
 uc-micro-py==1.0.3
-urllib3==2.2.3
+urllib3==2.3.0
