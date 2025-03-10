@@ -2,10 +2,10 @@ name: Fuzz Testing
 
 on:
   schedule:
-    - cron: '45 11 * * *'  
+    - cron: '0 23 * * *'  
 
 jobs:
-  build:
+  fuzz:
     runs-on: ubuntu-latest
 
     steps:
@@ -104,14 +104,6 @@ jobs:
         echo "Waiting for app to fully initialize..."
         sleep 10
       
-  fuzz:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
     - name: Set up ZAP
       run: |
         sudo apt-get update
@@ -126,7 +118,7 @@ jobs:
         sleep 10
         
         # Run a fuzz test against your service
-        zap-cli --zap-url http://localhost:8080 --zap-path /usr/share/zaproxy fuzz -r https://localhost:3001
+        timeout 30m zap-cli --zap-url http://localhost:8080 --zap-path /usr/share/zaproxy fuzz -r https://localhost:3001
         
         # Generate a report
         zap-cli --zap-url http://localhost:8080 --zap-path /usr/share/zaproxy report -o zap_report.html -f html
