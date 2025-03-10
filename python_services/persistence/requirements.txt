@@ -33,7 +33,7 @@ pluggy==1.5.0
 protobuf==5.29.3
 pycairo==1.27.0
 Pygments==2.18.0
-PyGObject==3.50.0
+PyGObject==3.52.1
 pyogrio==0.10.0
 pyparsing==3.2.1
 pyproj==3.7.0
