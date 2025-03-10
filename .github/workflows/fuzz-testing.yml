@@ -2,7 +2,7 @@ name: Fuzz Testing
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+    - cron: '11 0 * * *'  
 
 jobs:
   build:
