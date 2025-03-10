@@ -156,7 +156,6 @@ jobs:
         cmd_options: '-a -z "certificate.accept.unsecure.certs=true" -I'
         target: 'https://localhost:3001'
         allow_issue_writing: true
-        report_html: 'zap-report.html'  
 
     # Stop the app in a cleanup step
     - name: Stop application
@@ -175,7 +174,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: zap-report
-        path: "zap-report.html"  
+        path: "report_html.html"  # Use the default filename
         if-no-files-found: warn
 
 concurrency:
