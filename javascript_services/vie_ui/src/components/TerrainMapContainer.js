@@ -7,14 +7,14 @@ import { TerrainGenerationServiceClient } from '../protos/terrain_generation/ter
 import * as terrainMessages from '../protos/terrain_generation/terrain_generation_pb';
 
 const TerrainMapContainer = () => {
-  const [hexCount] = useState(50);
-  const [root, setRoot] = useState(null);
+  // Removed unused variables
+  // const [hexCount] = useState(50);
+  // const [root, setRoot] = useState(null);
   
   // Load the proto definition directly
   useEffect(() => {
     protobuf.load('/proto/terrain_generation.proto')
       .then(loadedRoot => {
-        setRoot(loadedRoot);
         console.log("Proto loaded successfully");
       })
       .catch(err => {
@@ -35,39 +35,6 @@ const TerrainMapContainer = () => {
     }
   }, []);
 
-  // Create a client connecting to the terrain generation service
-  const client = new TerrainGenerationServiceClient('https://localhost:3000', null, null);
-
-  // If generateTerrain is not used, remove it
-  // const generateTerrain = () => {
-  //   if (!root) {
-  //     console.error("Proto definition not loaded yet");
-  //     return;
-  //   }
-    
-  //   try {
-  //     // Get the message type from the loaded root
-  //     const TerrainRequest = root.lookupType('terrain.GenerateTerrainRequest');
-      
-  //     // Create a message
-  //     const message = TerrainRequest.create({
-  //       totalLandHexagons: parseInt(hexCount),
-  //       persist: true
-  //     });
-      
-  //     // Convert to binary format for gRPC
-  //     const buffer = TerrainRequest.encode(message).finish();
-      
-  //     // Now use the binary format with your gRPC client
-  //     client.generateTerrain(buffer, {}, (err, response) => {
-  //       // Process response...
-  //     });
-  //   } catch (e) {
-  //     console.error("Failed to create request:", e);
-  //   }
-  // };
-
-  // Rest of component...
 };
 
 export default TerrainMapContainer; 
