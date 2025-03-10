@@ -38,7 +38,7 @@ pyogrio==0.10.0
 pyparsing==3.2.1
 pyproj==3.7.0
 PyQt5-Qt5==5.15.15
-PyQt5_sip==12.15.0
+PyQt5_sip==12.17.0
 pytest==8.3.5
 pytest-cov==6.0.0
 python-dateutil==2.9.0.post0
