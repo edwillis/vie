@@ -359,7 +359,7 @@ def serve():
         server.add_secure_port("[::]:50051", server_credentials)
 
         server.start()
-        logger.info(f"Terrain Generation Service started on port 50051")
+        logger.info("Terrain Generation Service started on port 50051")
         server.wait_for_termination()
     except Exception as e:
         logger.error(f"Error starting Terrain Generation Service: {e}")

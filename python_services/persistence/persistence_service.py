@@ -189,7 +189,7 @@ def serve():
         server.add_secure_port('[::]:50052', server_credentials)
 
         server.start()
-        logger.info(f"Persistence Service started on port 50052")
+        logger.info("Persistence Service started on port 50052")
         server.wait_for_termination()
     except Exception as e:
         logger.error(f"Error starting Persistence Service: {e}")
