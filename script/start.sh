@@ -4,23 +4,53 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Create the 'logs' directory in the project root if it doesn't exist
-mkdir -p "$SCRIPT_DIR/../logs"  # Ensures the 'logs' directory exists for storing log files
+mkdir -p "$SCRIPT_DIR/../logs"
 
-# Generate a timestamp for the log file name in the format YYYY-MM-DD_HH-MM-SS
-TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")  # Generates a timestamp to uniquely name the log file
+# Generate a timestamp for the log file name
+TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
 
 # Define the log file path using the generated timestamp
-LOG_FILE="$SCRIPT_DIR/../logs/$TIMESTAMP.log"  # Sets the log file path in the 'logs' directory
+LOG_FILE="$SCRIPT_DIR/../logs/$TIMESTAMP.log"
 
-# Start Envoy with the configuration in ./config/envoy.yaml and redirect logs to the log file
-envoy -c "$SCRIPT_DIR/../config/envoy.yaml" --log-level info >> "$LOG_FILE" 2>&1 &  # Starts Envoy and redirects both stdout and stderr to the log file
+# Create the certs directory if it doesn't exist
+mkdir -p certs
 
-# Start Python Services in the background and redirect logs to the same log file
-python3 "$SCRIPT_DIR/../python_services/terrain_generation/terrain_generation_service.py" >> "$LOG_FILE" 2>&1 &  # Starts Terrain Generation Service and appends logs to the log file
-python3 "$SCRIPT_DIR/../python_services/persistence/persistence_service.py" >> "$LOG_FILE" 2>&1 &  # Starts Persistence Service and appends logs to the log file
+# Generate SSL certificates if they don't exist
+if [ ! -f certs/localhost.pem ]; then
+    echo "Generating SSL certificates..."
+    mkcert -install
+    mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
+fi
 
-# Navigate to the React app directory and start the React app without redirecting logs
-cd "$SCRIPT_DIR/../javascript_services/vie_ui/" || { echo "Failed to navigate to vie_ui directory"; exit 1; }
-npm start &  # Starts the React app in the background and logs are emitted to stdout
+# Check if we have terrain_generation_service.py
+if [ ! -f python_services/terrain_generation/terrain_generation_service.py ]; then
+    echo "Error: terrain_generation_service.py not found!"
+    exit 1
+fi
 
-echo "Envoy, Python services, and React app 'vie_ui' started."  # Confirms that all services have been started
+# Start the Python services with log redirection
+cd python_services || { echo "Failed to navigate to python_services directory"; exit 1; }
+python -m persistence.persistence_service >> "$LOG_FILE" 2>&1 &
+echo $! > ../service_pids.txt
+python -m terrain_generation.terrain_generation_service >> "$LOG_FILE" 2>&1 &
+echo $! >> ../service_pids.txt
+cd ..
+
+# Start Envoy with log redirection
+envoy -c config/envoy.yaml --log-level info >> "$LOG_FILE" 2>&1 &
+echo $! >> service_pids.txt
+
+# Start the JavaScript UI service
+cd javascript_services/vie_ui || { echo "Failed to navigate to vie_ui directory"; exit 1; }
+HTTPS=true PORT=3001 SSL_CRT_FILE=../../certs/localhost.pem SSL_KEY_FILE=../../certs/localhost-key.pem npm start &
+echo $! >> ../../service_pids.txt
+
+echo "All services started. Logs being written to $LOG_FILE"
+echo "Press Ctrl+C to stop."
+
+echo "Envoy, Python services, and React app 'vie_ui' started."
+echo "Visit https://localhost:3001 to view the application."
+echo "To stop the services, run: ./script/stop.sh"
+
+# Let the script keep running indefinitely
+wait

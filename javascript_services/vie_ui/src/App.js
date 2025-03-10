@@ -25,7 +25,7 @@ const App = () => {
   useEffect(() => {
     console.info('Initializing TerrainGenerationServiceClient...');
     // Create a new client instance for the TerrainGenerationService
-    const client = new TerrainGenerationServiceClient('http://localhost:8090');
+    const client = new TerrainGenerationServiceClient('https://localhost:3000');
 
     // Create a new TerrainRequest message
     const request = new TerrainRequest();

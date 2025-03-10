@@ -38,12 +38,28 @@ add_custom_command(
     COMMENT "Generating gRPC and Protobuf code for Python Terrain Generation Service"
 )
 
-# Add custom target to generate protobufs
+# Add protobuf and gRPC-web generation for JavaScript services
+add_custom_command(
+    OUTPUT ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation/terrain_generation_pb.js
+           ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation/terrain_generation_grpc_web_pb.js
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation
+    COMMAND protoc
+            -I=${CMAKE_SOURCE_DIR}/python_services/protos
+            --js_out=import_style=commonjs:${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos
+            --grpc-web_out=import_style=commonjs,mode=grpcwebtext:${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos
+            terrain_generation/terrain_generation.proto
+    DEPENDS ${CMAKE_SOURCE_DIR}/python_services/protos/terrain_generation/terrain_generation.proto
+    COMMENT "Generating JavaScript gRPC-web code for Terrain Generation"
+)
+
+# Update the generate_protos target to include JS outputs
 add_custom_target(generate_protos ALL
                   DEPENDS ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_pb2.py
                           ${CMAKE_SOURCE_DIR}/python_services/persistence/persistence_pb2_grpc.py
                           ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2.py
-                          ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2_grpc.py)
+                          ${CMAKE_SOURCE_DIR}/python_services/terrain_generation/terrain_generation_pb2_grpc.py
+                          ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation/terrain_generation_pb.js
+                          ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/src/protos/terrain_generation/terrain_generation_grpc_web_pb.js)
 
 # Add custom target to recreate the .cursorrules file
 add_custom_target(cursorrules
@@ -74,7 +90,9 @@ endif()
 # Add custom target to run Python unit tests
 add_custom_target(run_tests
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                  COMMAND PYTHONPATH=${CMAKE_SOURCE_DIR}/python_services pytest --cov-branch --cov=python_services --cov-report=html --cov-report=xml  -v python_services/
+                  COMMAND ${CMAKE_SOURCE_DIR}/script/start.sh & 
+                  COMMAND sleep 5 # Give services time to start
+                  COMMAND PYTHONPATH=${CMAKE_SOURCE_DIR}/python_services pytest --cov-branch --cov=python_services --cov-report=html --cov-report=xml -v python_services/
                   COMMENT "Running Python unit tests with coverage")
 
 # Add custom target to run Python unit tests and then show the coverage report in the browser
@@ -82,3 +100,17 @@ add_custom_target(show_coverage
                   DEPENDS run_tests
                   COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_SOURCE_DIR}/script/show_coverage.sh
                   COMMENT "Running Python unit tests and showing the coverage report in the browser")
+
+# Find where protoc-gen-js and protoc-gen-grpc-web are installed
+find_program(PROTOC_GEN_JS protoc-gen-js 
+  PATHS ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/node_modules/.bin
+  NO_DEFAULT_PATH
+)
+
+find_program(PROTOC_GEN_GRPC_WEB protoc-gen-grpc-web
+  PATHS ${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/node_modules/.bin
+  NO_DEFAULT_PATH
+)
+
+# Use these paths in your protoc commands by modifying the PATH environment variable
+set(ENV{PATH} "${CMAKE_SOURCE_DIR}/javascript_services/vie_ui/node_modules/.bin:$ENV{PATH}")

@@ -18,7 +18,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "stop": "ps aux | grep node | grep vie | awk '{print $2}' | xargs kill"
+    "stop": "ps aux | grep node | grep vie | awk '{print $2}' | xargs kill",
+    "install-protoc-plugins": "chmod +x ./node_modules/.bin/protoc-gen-js && chmod +x ./node_modules/.bin/protoc-gen-grpc-web && mkdir -p /usr/local/bin && ln -sf $(pwd)/node_modules/.bin/protoc-gen-js /usr/local/bin/ && ln -sf $(pwd)/node_modules/.bin/protoc-gen-grpc-web /usr/local/bin/",
+    "setup-protoc-path": "chmod +x ./node_modules/.bin/protoc-gen-js && chmod +x ./node_modules/.bin/protoc-gen-grpc-web && echo \"$(pwd)/node_modules/.bin\" > protoc_path.txt"
   },
   "eslintConfig": {
     "extends": [
@@ -43,6 +45,9 @@
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.2",
-    "prettier": "^3.4.1"
+    "prettier": "^3.4.1",
+    "protobufjs": "^7.2.4",
+    "protoc-gen-js": "^3.21.4-4",
+    "protoc-gen-grpc-web": "^1.5.0"
   }
 }

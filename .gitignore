@@ -92,3 +92,6 @@ yarn-error.log*
 
 # Ignore automatically generated .cursorrules file
 .cursorrules
+
+# Ignore dynamically created certs
+certs/
