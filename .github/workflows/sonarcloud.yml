@@ -147,20 +147,17 @@ jobs:
         echo "Waiting for app to fully initialize..."
         sleep 10
       
-    - name: Run ZAP scan
+    - name: ZAP Full Scan
       if: success()
-      run: |
-        # Create directory with proper permissions
-        mkdir -p zap_output
-        chmod 777 zap_output
-        
-        echo "Starting ZAP scan..."
-        docker run --rm -v $(pwd)/zap_output:/zap/wrk/:rw --network=host \
-          -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-          -z "certificate.accept.unsecure.certs=true" \
-          -t https://localhost:3001 -r testreport.html \
-          -I
-      
+      uses: zaproxy/action-full-scan@v0.12.0
+      with:
+        token: ${{ secrets.PAT_ZAP_SECRET }}
+        docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
+        cmd_options: '-a -z "certificate.accept.unsecure.certs=true" -I'
+        target: 'https://localhost:3001'
+        allow_issue_writing: true
+        report_html: 'zap-report.html'  
+
     # Stop the app in a cleanup step
     - name: Stop application
       if: always()
@@ -178,7 +175,8 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: zap-report
-        path: testreport.html
+        path: "zap-report.html"  
+        if-no-files-found: warn
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
