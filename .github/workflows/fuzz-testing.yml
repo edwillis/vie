@@ -2,7 +2,7 @@ name: Fuzz Testing
 
 on:
   schedule:
-    - cron: '0 23 * * *'  
+    - cron: '59 23 * * *'  
 
 jobs:
   fuzz:
