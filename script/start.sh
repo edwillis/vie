@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e  # Exit immediately if a command exits with a non-zero status
 
 # Get the directory where the script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -44,6 +45,9 @@ echo $! >> service_pids.txt
 cd javascript_services/vie_ui || { echo "Failed to navigate to vie_ui directory"; exit 1; }
 HTTPS=true PORT=3001 SSL_CRT_FILE=../../certs/localhost.pem SSL_KEY_FILE=../../certs/localhost-key.pem npm start &
 echo $! >> ../../service_pids.txt
+
+echo "Waiting for app to fully initialize..."
+sleep 10
 
 echo "All services started. Logs being written to $LOG_FILE"
 echo "Press Ctrl+C to stop."
