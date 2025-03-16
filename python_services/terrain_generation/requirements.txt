@@ -50,6 +50,6 @@ shapely==2.0.6
 six==1.17.0
 SQLAlchemy==2.0.39
 typing_extensions==4.12.2
-tzdata==2024.2
+tzdata==2025.1
 uc-micro-py==1.0.3
 urllib3==2.3.0
