@@ -8,7 +8,7 @@ coverage==7.6.12
 cycler==0.12.1
 fonttools==4.56.0
 geopandas==1.0.1
-googleapis-common-protos==1.65.0
+googleapis-common-protos==1.69.1
 greenlet==3.1.1
 grpcio==1.68.1
 grpcio-reflection==1.68.1
