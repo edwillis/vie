@@ -34,7 +34,7 @@ jobs:
         # Use -o to set the APT directory - this will use the cached directory
         sudo apt-get install -y -o dir::cache::archives=/var/cache/apt/archives \
           libcairo2-dev libgirepository1.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev \
-          build-essential autoconf libtool pkg-config cmake doxygen \
+          build-essential autoconf libtool pkg-config cmake doxygen libgirepository1.0-dev \
           libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert python3-gi gir1.2-gtk-3.0
 
     - name: Install Envoy
