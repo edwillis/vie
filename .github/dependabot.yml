@@ -6,15 +6,36 @@ updates:
       interval: "daily"
       time:  "09:00"
       timezone: "America/New_York"
+    commit-message:
+      prefix: "deps"
+    open-pull-requests-limit: 5
+    groups:
+      all-pip-updates:
+        patterns:
+          - "*"
   - package-ecosystem: "pip" # See documentation for possible values
     directory: "./python_services/terrain_generation" # Location of package manifests
     schedule:
       interval: "daily"
       time:  "09:00"
       timezone: "America/New_York"
+    commit-message:
+      prefix: "deps"
+    open-pull-requests-limit: 5
+    groups:
+      all-pip-updates:
+        patterns:
+          - "*"
   - package-ecosystem: "npm" 
     directory: "./javascript_services/vie_ui" 
     schedule:
       interval: "daily"
       time:  "09:00"
       timezone: "America/New_York"
+    commit-message:
+      prefix: "deps"
+    open-pull-requests-limit: 5
+    groups:
+      all-npm-updates:
+        patterns:
+          - "*"
