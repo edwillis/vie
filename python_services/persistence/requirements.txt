@@ -35,7 +35,7 @@ pluggy==1.5.0
 protobuf==5.29.3
 pycairo==1.27.0
 pyerfa==2.0.1.5
-python3-gi==3.48.2-1
+python3-gi==3.48.2
 Pygments==2.18.0
 PyGObject==3.50.0
 pyogrio==0.10.0
