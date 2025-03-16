@@ -157,6 +157,10 @@ jobs:
         target: 'https://localhost:3001'
         allow_issue_writing: true
 
+    - name: Log Issues to GitHub
+      run: |
+        zap-cli --zap-url http://localhost:8080 --zap-path /usr/share/zaproxy github-issue-creator --repo edwillis/vie --token ${{ secrets.PAT_ZAP_SECRET }}
+
     # Stop the app in a cleanup step
     - name: Stop application
       if: always()
