@@ -19,89 +19,110 @@ jobs:
       with:
         fetch-depth: 0
     
-    # Cache APT packages
-    - name: Cache APT packages
-      uses: actions/cache@v3
-      with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/sonarcloud.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-apt-
-
-    - name: Install os dependencies
+    - name: Setup OS dependencies
       run: |
-        sudo apt-get update
-        # Use -o to set the APT directory - this will use the cached directory
-        sudo apt-get install -y -o dir::cache::archives=/var/cache/apt/archives \
-          libcairo2-dev libgirepository-2.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev \
-          build-essential autoconf libtool pkg-config cmake doxygen \
-          libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert python3-gi gir1.2-gtk-3.0
+        setup_environment() {
+          echo "Caching apt packages..."
+          sudo mkdir -p /var/cache/apt/archives
+          sudo apt-get update
+          sudo apt-get install -y -o dir::cache::archives=/var/cache/apt/archives \
+            libcairo2-dev libgirepository-2.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev \
+            build-essential autoconf libtool pkg-config cmake doxygen \
+            libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert python3-gi gir1.2-gtk-3.0
 
-    - name: Install Envoy
+          echo "Installing Envoy..."
+          curl -Lo /tmp/envoy https://github.com/envoyproxy/envoy/releases/download/v1.32.1/envoy-1.32.1-linux-x86_64
+          sudo install -m 755 /tmp/envoy /usr/local/bin/envoy
+          envoy --version
+        }
+
+        setup_python_environment() {
+          echo "Setting up Python..."
+          python_version='3.12'
+          echo "Installing Python $python_version"
+          sudo apt-get install -y python$python_version
+
+          echo "Caching Python dependencies..."
+          pip_cache_dir=~/.cache/pip
+          mkdir -p $pip_cache_dir
+
+          echo "Installing Python dependencies..."
+          python -m pip install --upgrade pip
+          pip install -r python_services/terrain_generation/requirements.txt
+          pip install -r python_services/persistence/requirements.txt
+        }
+
+        setup_javascript_environment() {
+          echo "Caching JavaScript dependencies..."
+          npm_cache_dir=~/.npm
+          mkdir -p $npm_cache_dir
+
+          echo "Installing JavaScript dependencies..."
+          cd javascript_services/vie_ui
+          npm install 
+          chmod +x node_modules/.bin/protoc-gen-js || echo "File not found or already executable"
+          chmod +x node_modules/.bin/protoc-gen-grpc-web || echo "File not found or already executable"
+          echo "PATH=$PWD/node_modules/.bin:$PATH" >> $GITHUB_ENV
+          # Create symlinks to standard locations as fallback
+          sudo mkdir -p /usr/local/bin
+          sudo ln -sf $PWD/node_modules/.bin/protoc-gen-js /usr/local/bin/ || echo "Could not create symlink"
+          sudo ln -sf $PWD/node_modules/.bin/protoc-gen-grpc-web /usr/local/bin/ || echo "Could not create symlink"
+        }
+
+        setup_mkcert_and_cmake() {
+          echo "Caching mkcert data..."
+          mkcert_cache_dir=~/Library/Application\ Support/mkcert
+          mkdir -p "$mkcert_cache_dir"
+
+          echo "Installing mkcert..."
+          mkcert -install
+
+          echo "Installing CMake..."
+          cmake_version='3.28.3'
+          curl -Lo /tmp/cmake.sh https://github.com/Kitware/CMake/releases/download/v$cmake_version/cmake-$cmake_version-Linux-x86_64.sh
+          sudo sh /tmp/cmake.sh --skip-license --prefix=/usr/local
+          cmake --version
+        }
+
+    - name: Run Setup Functions Concurrently
       run: |
-        # Direct binary installation - most reliable method
-        echo "Installing Envoy binary directly"
-        curl -Lo /tmp/envoy https://github.com/envoyproxy/envoy/releases/download/v1.32.1/envoy-1.32.1-linux-x86_64
-        sudo install -m 755 /tmp/envoy /usr/local/bin/envoy
-        # Verify installation
-        envoy --version
+        # Call each setup function in the background and track PIDs
+        setup_environment &
+        pid1=$!
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.12'
+        setup_python_environment &
+        pid2=$!
 
-    # Cache Python dependencies
-    - name: Cache Python dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('python_services/**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        setup_javascript_environment &
+        pid3=$!
 
-    - name: Install python dependencies
+        setup_mkcert_and_cmake &
+        pid4=$!
+
+        # Wait for all background processes to complete
+        wait $pid1 $pid2 $pid3 $pid4
+
+    - name: Define Test and Application Functions
       run: |
-        python -m pip install --upgrade pip
-        pip install -r python_services/terrain_generation/requirements.txt
-        pip install -r python_services/persistence/requirements.txt
-    
-    # Cache JavaScript dependencies
-    - name: Cache JavaScript dependencies
-      uses: actions/cache@v3
-      with:
-        path: javascript_services/vie_ui/node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('javascript_services/vie_ui/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
-        
-    - name: Install javascript dependencies
-      run: |
-        cd javascript_services/vie_ui
-        npm install 
-        chmod +x node_modules/.bin/protoc-gen-js || echo "File not found or already executable"
-        chmod +x node_modules/.bin/protoc-gen-grpc-web || echo "File not found or already executable"
-        echo "PATH=$PWD/node_modules/.bin:$PATH" >> $GITHUB_ENV
-        # Create symlinks to standard locations as fallback
-        sudo mkdir -p /usr/local/bin
-        sudo ln -sf $PWD/node_modules/.bin/protoc-gen-js /usr/local/bin/ || echo "Could not create symlink"
-        sudo ln -sf $PWD/node_modules/.bin/protoc-gen-grpc-web /usr/local/bin/ || echo "Could not create symlink"
+        run_tests() {
+          echo "Running tests..."
+          cd build && make run_tests
+        }
 
-    # Cache mkcert data directory
-    - name: Cache mkcert data
-      uses: actions/cache@v3
-      with:
-        path: ~/Library/Application Support/mkcert
-        key: ${{ runner.os }}-mkcert
+        start_application_and_zap_scan() {
+          echo "Starting application..."
+          ./script/start.sh
+          echo "Waiting for app to fully initialize..."
+          sleep 10
 
-    - name: Install mkcert
-      run: |
-        mkcert -install
-
-    - name: Install CMake
-      uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '3.28.3'  # Specify the required CMake version
+          echo "Running ZAP Full Scan..."
+          zaproxy/action-full-scan@v0.12.0 \
+            --token ${{ secrets.PAT_ZAP_SECRET }} \
+            --docker_name 'ghcr.io/zaproxy/zaproxy:stable' \
+            --cmd_options '-a -z "certificate.accept.unsecure.certs=true" -I' \
+            --target 'https://localhost:3001' \
+            --allow_issue_writing true
+        }
 
     # Cache CMake build artifacts
     - name: Cache CMake build
@@ -134,28 +155,19 @@ jobs:
         mkdir -p certs
         mkcert -install
         mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
-        
-    - name: Run tests
-      run: |
-        cd build && make run_tests
-      id: tests
 
-    - name: Start application
-      if: success()
+    - name: Run Tests and Start Application Concurrently
       run: |
-        ./script/start.sh
-        echo "Waiting for app to fully initialize..."
-        sleep 10
-      
-    - name: ZAP Full Scan
-      if: success()
-      uses: zaproxy/action-full-scan@v0.12.0
-      with:
-        token: ${{ secrets.PAT_ZAP_SECRET }}
-        docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
-        cmd_options: '-a -z "certificate.accept.unsecure.certs=true" -I'
-        target: 'https://localhost:3001'
-        allow_issue_writing: true
+        # Call each function in the background and track PIDs
+        run_tests &
+        pid1=$!
+
+        start_application_and_zap_scan &
+        pid2=$!
+  
+        # Wait for all background processes to complete
+        wait $pid1 $pid2
+  
 
     # Stop the app in a cleanup step
     - name: Stop application
