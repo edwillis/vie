@@ -168,6 +168,10 @@ jobs:
           echo "Waiting for app to fully initialize..."
           sleep 10
 
+          # Create the reports directory with proper permissions
+          mkdir -p reports
+          chmod 777 reports  # Ensure the directory is writable by any user
+
           echo "Running ZAP Full Scan..."
           docker run --rm \
             --network="host" \
@@ -177,6 +181,13 @@ jobs:
             -r /zap/wrk/zap-report.html \
             -z "certificate.accept.unsecure.certs=true" \
             -I -a
+          
+          # Explicitly capture Docker's exit code
+          DOCKER_EXIT_CODE=$?
+          if [ $DOCKER_EXIT_CODE -ne 0 ]; then
+            echo "ZAP scan failed with exit code $DOCKER_EXIT_CODE"
+            return $DOCKER_EXIT_CODE
+          fi
         }
 
         # Call test and application functions in the background and use process substitution with tee
@@ -207,9 +218,6 @@ jobs:
         # Wait for all background processes to complete with a timeout
         wait_with_timeout $pid1 600 || { echo "run_tests failed"; cat run_tests.log; cat run_tests.err; exit 1; }
         wait_with_timeout $pid2 1200 || { echo "start_application_and_zap_scan failed"; cat zap_scan.log; cat zap_scan.err; exit 1; }
-
-        # Make sure reports directory exists
-        mkdir -p reports
 
     # Stop the app in a cleanup step
     - name: Stop application
