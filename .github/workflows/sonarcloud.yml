@@ -155,7 +155,7 @@ jobs:
         mkcert -install
         mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
 
-    - name: Run Tests and Start Application
+    - name: Run Tests and ZAP Test Application
       run: |
         run_tests() {
           echo "Running tests..."
@@ -176,16 +176,17 @@ jobs:
             --target 'https://localhost:3001' \
             --allow_issue_writing true
         }
-        # Call test and application functions in the background and track PIDs
-        run_tests &
+
+        # Call test and application functions in the background and use process substitution with tee
+        run_tests > >(tee run_tests.log) 2> >(tee run_tests.err >&2) &
         pid1=$!
 
-        start_application_and_zap_scan &
+        start_application_and_zap_scan > >(tee zap_scan.log) 2> >(tee zap_scan.err >&2) &
         pid2=$!
-  
+
         # Wait for all background processes to complete
-        wait $pid1 $pid2
-  
+        wait $pid1 || { echo "run_tests failed"; cat run_tests.log; cat run_tests.err; exit 1; }
+        wait $pid2 || { echo "start_application_and_zap_scan failed"; cat zap_scan.log; cat zap_scan.err; exit 1; }
 
     # Stop the app in a cleanup step
     - name: Stop application
