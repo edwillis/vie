@@ -164,7 +164,7 @@ jobs:
 
         start_application_and_zap_scan() {
           echo "Starting application..."
-          ./script/start.sh
+          ./script/start.sh &  # Run the application start script in the background
           echo "Waiting for app to fully initialize..."
           sleep 10
 
@@ -175,6 +175,7 @@ jobs:
             --cmd_options '-a -z "certificate.accept.unsecure.certs=true" -I' \
             --target 'https://localhost:3001' \
             --allow_issue_writing true
+
         }
 
         # Call test and application functions in the background and use process substitution with tee
