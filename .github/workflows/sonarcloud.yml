@@ -19,14 +19,37 @@ jobs:
       with:
         fetch-depth: 0
     
+    # Restore Python dependencies cache
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('python_services/**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    # Restore Node.js dependencies cache
+    - name: Cache Node.js dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('javascript_services/vie_ui/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    # Restore mkcert cache
+    - name: Cache mkcert data
+      uses: actions/cache@v3
+      with:
+        path: ~/Library/Application Support/mkcert
+        key: ${{ runner.os }}-mkcert
+
     - name: Setup Environment
       run: |
         setup_os_and_python_environment() {
-          echo "Caching apt packages..."
-          sudo mkdir -p /var/cache/apt/archives
+          echo "Installing system packages..."
           sudo apt-get update
-          sudo apt-get install -y -o dir::cache::archives=/var/cache/apt/archives \
-            libcairo2-dev libgirepository-2.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev \
+          sudo apt-get install -y libcairo2-dev libgirepository-2.0-dev libgrpc-dev libprotobuf-dev libgrpc++-dev \
             build-essential autoconf libtool pkg-config cmake doxygen \
             libgrpc-dev protobuf-compiler protobuf-compiler-grpc mkcert python3-gi gir1.2-gtk-3.0
 
@@ -37,52 +60,24 @@ jobs:
 
           echo "Setting up Python..."
           python_version='3.12'
-          echo "Installing Python $python_version"
           sudo apt-get install -y python$python_version
-
-          echo "Caching Python dependencies..."
-          pip_cache_dir=~/.cache/pip
-          mkdir -p $pip_cache_dir
-          key: ${{ runner.os }}-pip-${{ hashFiles('python_services/**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-          
-          echo "Installing Python dependencies..."
           python -m pip install --upgrade pip
           pip install -r python_services/terrain_generation/requirements.txt
           pip install -r python_services/persistence/requirements.txt
         }
 
         setup_javascript_environment() {
-          echo "Caching JavaScript dependencies..."
-          npm_cache_dir=~/.npm
-          mkdir -p $npm_cache_dir
-          with:
-            path: javascript_services/vie_ui/node_modules
-            key: ${{ runner.os }}-node-${{ hashFiles('javascript_services/vie_ui/package-lock.json') }}
-            restore-keys: |
-              ${{ runner.os }}-node-
-            
           echo "Installing JavaScript dependencies..."
           cd javascript_services/vie_ui
-          npm install 
+          npm install
           chmod +x node_modules/.bin/protoc-gen-js || echo "File not found or already executable"
           chmod +x node_modules/.bin/protoc-gen-grpc-web || echo "File not found or already executable"
           echo "PATH=$PWD/node_modules/.bin:$PATH" >> $GITHUB_ENV
-          # Create symlinks to standard locations as fallback
-          sudo mkdir -p /usr/local/bin
           sudo ln -sf $PWD/node_modules/.bin/protoc-gen-js /usr/local/bin/ || echo "Could not create symlink"
           sudo ln -sf $PWD/node_modules/.bin/protoc-gen-grpc-web /usr/local/bin/ || echo "Could not create symlink"
         }
 
         setup_mkcert_and_cmake() {
-          echo "Caching mkcert data..."
-          mkcert_cache_dir=~/Library/Application\ Support/mkcert
-          mkdir -p "$mkcert_cache_dir"
-          with:
-            path: ~/Library/Application Support/mkcert
-            key: ${{ runner.os }}-mkcert
-            
           echo "Installing mkcert..."
           mkcert -install
 
@@ -104,7 +99,30 @@ jobs:
         pid3=$!
 
         # Wait for all background processes to complete
-        wait $pid1 $pid2 $pid3
+        wait $pid1 || { echo "setup_os_and_python_environment failed"; exit 1; }
+        wait $pid2 || { echo "setup_javascript_environment failed"; exit 1; }
+        wait $pid3 || { echo "setup_mkcert_and_cmake failed"; exit 1; }
+
+    # Save Python dependencies cache
+    - name: Save Python dependencies cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('python_services/**/requirements.txt') }}
+
+    # Save Node.js dependencies cache
+    - name: Save Node.js dependencies cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('javascript_services/vie_ui/package-lock.json') }}
+
+    # Save mkcert cache
+    - name: Save mkcert cache
+      uses: actions/cache@v3
+      with:
+        path: ~/Library/Application Support/mkcert
+        key: ${{ runner.os }}-mkcert
 
     - name: Cache CMake build
       uses: actions/cache@v3
