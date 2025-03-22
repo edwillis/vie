@@ -155,6 +155,32 @@ jobs:
         mkcert -install
         mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
 
+    # Cache ZAP Docker image
+    - name: Cache ZAP Docker image
+      id: cache-zap-image
+      uses: actions/cache@v3
+      with:
+        path: /tmp/zap-docker-image
+        key: ${{ runner.os }}-zap-docker-image-stable
+
+    # Pull and save ZAP Docker image if not cached
+    - name: Pull and save ZAP Docker image
+      if: steps.cache-zap-image.outputs.cache-hit != 'true'
+      run: |
+        echo "Pulling ZAP Docker image..."
+        docker pull ghcr.io/zaproxy/zaproxy:stable
+        mkdir -p /tmp/zap-docker-image
+        docker save ghcr.io/zaproxy/zaproxy:stable > /tmp/zap-docker-image/zap-image.tar
+        echo "ZAP Docker image saved to cache"
+
+    # Load ZAP Docker image from cache if available
+    - name: Load ZAP Docker image from cache
+      if: steps.cache-zap-image.outputs.cache-hit == 'true'
+      run: |
+        echo "Loading ZAP Docker image from cache..."
+        docker load < /tmp/zap-docker-image/zap-image.tar
+        echo "ZAP Docker image loaded"
+
     - name: Run Tests and ZAP Test Application
       run: |
         # Create exit code storage
@@ -248,12 +274,21 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         
+    - name: Verify ZAP report exists
+      run: |
+        if [ ! -f "reports/zap-report.html" ]; then
+          echo "ERROR: ZAP report file not found at reports/zap-report.html"
+          echo "This indicates the ZAP scan did not complete successfully"
+          exit 1
+        fi
+        echo "ZAP report found and verified"
+
     - name: Upload ZAP report
       uses: actions/upload-artifact@v4
       with:
         name: zap-report
-        path: "reports/zap-report.html"  # Correct path to match our ZAP command
-        if-no-files-found: warn
+        path: "reports/zap-report.html"
+        if-no-files-found: error
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
