@@ -95,7 +95,7 @@ jobs:
         setup_javascript_environment > >(tee js_setup.log) 2> >(tee js_setup.err >&2) &
         pid2=$!
 
-        setup_mkcert_and_cmake > >(tee mkcert_cmake_setup.log) 2> >(tee mkcert_cmake_setup.err >&2) &
+        setup_cmake > >(tee cmake_setup.log) 2> >(tee cmake_setup.err >&2) &
         pid3=$!
 
         # Wait for all background processes to complete
