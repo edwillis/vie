@@ -155,13 +155,22 @@ jobs:
         mkcert -install
         mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
 
-    # Cache ZAP Docker image
+    # Cache ZAP Docker image with versioning
+    - name: Get ZAP Image Digest
+      id: zap-digest
+      run: |
+        # Get the digest (unique identifier) for the current stable image
+        DIGEST=$(docker manifest inspect ghcr.io/zaproxy/zaproxy:stable -v | jq -r '.[0].Descriptor.digest')
+        echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+        echo "Using ZAP image digest: $DIGEST"
+
     - name: Cache ZAP Docker image
       id: cache-zap-image
       uses: actions/cache@v3
       with:
         path: /tmp/zap-docker-image
-        key: ${{ runner.os }}-zap-docker-image-stable
+        # Include the digest in the cache key to ensure we update when the image changes
+        key: ${{ runner.os }}-zap-docker-image-${{ steps.zap-digest.outputs.digest }}
 
     # Pull and save ZAP Docker image if not cached
     - name: Pull and save ZAP Docker image
