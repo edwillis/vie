@@ -110,7 +110,7 @@ jobs:
       run: cmake -S . -B build
 
     - name: Build with CMake
-      run: cmake --build build -j $(nproc)  # Use parallel compilation
+      run: cmake --build build 
 
     # Cache SSL certificates
     - name: Cache SSL certificates
