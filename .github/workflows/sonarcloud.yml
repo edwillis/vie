@@ -19,7 +19,7 @@ jobs:
       with:
         fetch-depth: 0
     
-    - name: Setup OS dependencies
+    - name: Setup Functions
       run: |
         setup_environment() {
           echo "Caching apt packages..."
@@ -84,25 +84,7 @@ jobs:
           cmake --version
         }
 
-    - name: Run Setup Functions Concurrently
-      run: |
-        # Call each setup function in the background and track PIDs
-        setup_environment &
-        pid1=$!
-
-        setup_python_environment &
-        pid2=$!
-
-        setup_javascript_environment &
-        pid3=$!
-
-        setup_mkcert_and_cmake &
-        pid4=$!
-
-        # Wait for all background processes to complete
-        wait $pid1 $pid2 $pid3 $pid4
-
-    - name: Define Test and Application Functions
+    - name: Run Tests and Start Application
       run: |
         run_tests() {
           echo "Running tests..."
@@ -156,9 +138,9 @@ jobs:
         mkcert -install
         mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
 
-    - name: Run Tests and Start Application Concurrently
+    - name: Run Tests and Start Application
       run: |
-        # Call each function in the background and track PIDs
+        # Call test and application functions in the background and track PIDs
         run_tests &
         pid1=$!
 
