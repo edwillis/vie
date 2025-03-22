@@ -21,7 +21,7 @@ jobs:
     
     - name: Setup Environment
       run: |
-        setup_environment() {
+        setup_os_and_python_environment() {
           echo "Caching apt packages..."
           sudo mkdir -p /var/cache/apt/archives
           sudo apt-get update
@@ -34,9 +34,7 @@ jobs:
           curl -Lo /tmp/envoy https://github.com/envoyproxy/envoy/releases/download/v1.32.1/envoy-1.32.1-linux-x86_64
           sudo install -m 755 /tmp/envoy /usr/local/bin/envoy
           envoy --version
-        }
 
-        setup_python_environment() {
           echo "Setting up Python..."
           python_version='3.12'
           echo "Installing Python $python_version"
@@ -85,20 +83,17 @@ jobs:
         }
 
         # Call each setup function in the background and track PIDs
-        setup_environment &
+        setup_os_and_python_environment &
         pid1=$!
 
-        setup_python_environment &
+        setup_javascript_environment &
         pid2=$!
 
-        setup_javascript_environment &
+        setup_mkcert_and_cmake &
         pid3=$!
 
-        setup_mkcert_and_cmake &
-        pid4=$!
-
         # Wait for all background processes to complete
-        wait $pid1 $pid2 $pid3 $pid4
+        wait $pid1 $pid2 $pid3
 
     - name: Run Tests and Start Application
       run: |
