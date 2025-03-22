@@ -58,6 +58,9 @@ jobs:
           sudo install -m 755 /tmp/envoy /usr/local/bin/envoy
           envoy --version
 
+          echo "Installing mkcert..."
+          mkcert -install
+
           echo "Setting up Python..."
           python_version='3.12'
           sudo apt-get install -y python$python_version
@@ -77,10 +80,7 @@ jobs:
           sudo ln -sf $PWD/node_modules/.bin/protoc-gen-grpc-web /usr/local/bin/ || echo "Could not create symlink"
         }
 
-        setup_mkcert_and_cmake() {
-          echo "Installing mkcert..."
-          mkcert -install
-
+        setup_cmake() {
           echo "Installing CMake..."
           cmake_version='3.28.3'
           curl -Lo /tmp/cmake.sh https://github.com/Kitware/CMake/releases/download/v$cmake_version/cmake-$cmake_version-Linux-x86_64.sh
@@ -101,7 +101,7 @@ jobs:
         # Wait for all background processes to complete
         wait $pid1 || { echo "setup_os_and_python_environment failed"; cat os_setup.log; cat os_setup.err; exit 1; }
         wait $pid2 || { echo "setup_javascript_environment failed"; cat js_setup.log; cat js_setup.err; exit 1; }
-        wait $pid3 || { echo "setup_mkcert_and_cmake failed"; cat mkcert_cmake_setup.log; cat mkcert_cmake_setup.err; exit 1; }
+        wait $pid3 || { echo "setup_cmake failed"; cat mkcert_cmake_setup.log; cat mkcert_cmake_setup.err; exit 1; }
 
     # Save Python dependencies cache
     - name: Save Python dependencies cache
