@@ -95,3 +95,6 @@ yarn-error.log*
 
 # Ignore dynamically created certs
 certs/
+
+# Ignore zap reports
+reports/

@@ -45,6 +45,10 @@ static_resources:
                             prefix: "/"
                           route:
                             cluster: terrain_generation_service
+                          response_headers_to_add:
+                            - header:
+                                key: "Content-Security-Policy"
+                                value: "default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; upgrade-insecure-requests;"
                 http_filters:
                   - name: envoy.filters.http.cors
                     typed_config:

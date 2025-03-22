@@ -155,11 +155,41 @@ jobs:
         mkcert -install
         mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
 
+    # Cache ZAP Docker image
+    - name: Cache ZAP Docker image
+      id: cache-zap-image
+      uses: actions/cache@v3
+      with:
+        path: /tmp/zap-docker-image
+        key: ${{ runner.os }}-zap-docker-image-stable
+
+    # Pull and save ZAP Docker image if not cached
+    - name: Pull and save ZAP Docker image
+      if: steps.cache-zap-image.outputs.cache-hit != 'true'
+      run: |
+        echo "Pulling ZAP Docker image..."
+        docker pull ghcr.io/zaproxy/zaproxy:stable
+        mkdir -p /tmp/zap-docker-image
+        docker save ghcr.io/zaproxy/zaproxy:stable > /tmp/zap-docker-image/zap-image.tar
+        echo "ZAP Docker image saved to cache"
+
+    # Load ZAP Docker image from cache if available
+    - name: Load ZAP Docker image from cache
+      if: steps.cache-zap-image.outputs.cache-hit == 'true'
+      run: |
+        echo "Loading ZAP Docker image from cache..."
+        docker load < /tmp/zap-docker-image/zap-image.tar
+        echo "ZAP Docker image loaded"
+
     - name: Run Tests and ZAP Test Application
       run: |
+        # Create exit code storage
+        mkdir -p tmp
+        
         run_tests() {
           echo "Running tests..."
           cd build && make run_tests
+          echo $? > tmp/tests_exit_code
         }
 
         start_application_and_zap_scan() {
@@ -168,25 +198,33 @@ jobs:
           echo "Waiting for app to fully initialize..."
           sleep 10
 
-          echo "Running ZAP Full Scan..."
-          zaproxy/action-full-scan@v0.12.0 \
-            --token ${{ secrets.PAT_ZAP_SECRET }} \
-            --docker_name 'ghcr.io/zaproxy/zaproxy:stable' \
-            --cmd_options '-a -z "certificate.accept.unsecure.certs=true" -I' \
-            --target 'https://localhost:3001' \
-            --allow_issue_writing true
+          # Create the reports directory with proper permissions
+          mkdir -p reports
+          chmod 777 reports  # Ensure the directory is writable by any user
 
+          echo "Running ZAP Full Scan..."
+          docker run --rm \
+            --network="host" \
+            -v "$(pwd)/reports:/zap/wrk/:rw" \
+            -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+            -t https://localhost:3001 \
+            -r /zap/wrk/zap-report.html \
+            -z "certificate.accept.unsecure.certs=true" \
+            -I -a
+          
+          # Store exit code
+          echo $? > tmp/zap_exit_code
         }
 
-        # Call test and application functions in the background and use process substitution with tee
+        # Call functions in the background and use process substitution with tee
         run_tests > >(tee run_tests.log) 2> >(tee run_tests.err >&2) &
         pid1=$!
 
         start_application_and_zap_scan > >(tee zap_scan.log) 2> >(tee zap_scan.err >&2) &
         pid2=$!
 
-        # Function to wait with timeout
-        wait_with_timeout() {
+        # Wait for processes to complete with timeout
+        function wait_with_timeout() {
           local pid=$1
           local timeout=$2
           local start_time=$(date +%s)
@@ -200,12 +238,28 @@ jobs:
               return 1
             fi
           done
-          return 0
+          wait $pid 2>/dev/null  # Wait without propagating exit code
+          return 0  # Only indicates process completed, not success
         }
 
-        # Wait for all background processes to complete with a timeout
-        wait_with_timeout $pid1 600 || { echo "run_tests failed"; cat run_tests.log; cat run_tests.err; exit 1; }
-        wait_with_timeout $pid2 600 || { echo "start_application_and_zap_scan failed"; cat zap_scan.log; cat zap_scan.err; exit 1; }
+        # Wait for background processes to complete with timeouts
+        wait_with_timeout $pid1 600 || { echo "run_tests timed out"; exit 1; }
+        wait_with_timeout $pid2 1200 || { echo "start_application_and_zap_scan timed out"; exit 1; }
+
+        # Check exit codes from files
+        if [ -f tmp/tests_exit_code ] && [ "$(cat tmp/tests_exit_code)" != "0" ]; then
+          echo "run_tests failed with exit code $(cat tmp/tests_exit_code)"
+          cat run_tests.log
+          cat run_tests.err
+          exit 1
+        fi
+
+        if [ -f tmp/zap_exit_code ] && [ "$(cat tmp/zap_exit_code)" != "0" ]; then
+          echo "ZAP scan failed with exit code $(cat tmp/zap_exit_code)"
+          cat zap_scan.log
+          cat zap_scan.err
+          exit 1
+        fi
 
     # Stop the app in a cleanup step
     - name: Stop application
@@ -220,12 +274,21 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         
+    - name: Verify ZAP report exists
+      run: |
+        if [ ! -f "reports/zap-report.html" ]; then
+          echo "ERROR: ZAP report file not found at reports/zap-report.html"
+          echo "This indicates the ZAP scan did not complete successfully"
+          exit 1
+        fi
+        echo "ZAP report found and verified"
+
     - name: Upload ZAP report
       uses: actions/upload-artifact@v4
       with:
         name: zap-report
-        path: "report_html.html"  # Use the default filename
-        if-no-files-found: warn
+        path: "reports/zap-report.html"
+        if-no-files-found: error
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
