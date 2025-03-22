@@ -39,24 +39,20 @@ static_resources:
                         allow_headers: content-type,x-grpc-web,x-user-agent,grpc-timeout,authorization,x-requested-with
                         expose_headers: grpc-status,grpc-message,content-length,x-kuma-revision
                         max_age: "1728000"
-                        allow_credentials: true  # Ensure credentials are allowed if needed
+                        expose_headers: custom-header-1,grpc-status,grpc-message
                       routes:
                         - match:
                             prefix: "/"
                           route:
                             cluster: terrain_generation_service
+                          response_headers_to_add:
+                            - header:
+                                key: "Content-Security-Policy"
+                                value: "default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; upgrade-insecure-requests;"
                 http_filters:
                   - name: envoy.filters.http.cors
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
-                      filter_enabled:
-                        default_value:
-                          numerator: 100
-                          denominator: HUNDRED
-                      shadow_enabled:
-                        default_value:
-                          numerator: 0
-                          denominator: HUNDRED
                   - name: envoy.filters.http.grpc_web
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
