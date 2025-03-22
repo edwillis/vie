@@ -95,29 +95,6 @@ jobs:
         # Wait for all background processes to complete
         wait $pid1 $pid2 $pid3
 
-    - name: Run Tests and Start Application
-      run: |
-        run_tests() {
-          echo "Running tests..."
-          cd build && make run_tests
-        }
-
-        start_application_and_zap_scan() {
-          echo "Starting application..."
-          ./script/start.sh
-          echo "Waiting for app to fully initialize..."
-          sleep 10
-
-          echo "Running ZAP Full Scan..."
-          zaproxy/action-full-scan@v0.12.0 \
-            --token ${{ secrets.PAT_ZAP_SECRET }} \
-            --docker_name 'ghcr.io/zaproxy/zaproxy:stable' \
-            --cmd_options '-a -z "certificate.accept.unsecure.certs=true" -I' \
-            --target 'https://localhost:3001' \
-            --allow_issue_writing true
-        }
-
-    # Cache CMake build artifacts
     - name: Cache CMake build
       uses: actions/cache@v3
       with:
@@ -151,6 +128,25 @@ jobs:
 
     - name: Run Tests and Start Application
       run: |
+        run_tests() {
+          echo "Running tests..."
+          cd build && make run_tests
+        }
+
+        start_application_and_zap_scan() {
+          echo "Starting application..."
+          ./script/start.sh
+          echo "Waiting for app to fully initialize..."
+          sleep 10
+
+          echo "Running ZAP Full Scan..."
+          zaproxy/action-full-scan@v0.12.0 \
+            --token ${{ secrets.PAT_ZAP_SECRET }} \
+            --docker_name 'ghcr.io/zaproxy/zaproxy:stable' \
+            --cmd_options '-a -z "certificate.accept.unsecure.certs=true" -I' \
+            --target 'https://localhost:3001' \
+            --allow_issue_writing true
+        }
         # Call test and application functions in the background and track PIDs
         run_tests &
         pid1=$!
