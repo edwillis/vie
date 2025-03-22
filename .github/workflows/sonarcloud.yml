@@ -99,9 +99,9 @@ jobs:
         pid3=$!
 
         # Wait for all background processes to complete
-        wait $pid1 || { echo "setup_os_and_python_environment failed"; exit 1; }
-        wait $pid2 || { echo "setup_javascript_environment failed"; exit 1; }
-        wait $pid3 || { echo "setup_mkcert_and_cmake failed"; exit 1; }
+        wait $pid1 || { echo "setup_os_and_python_environment failed"; cat os_setup.log; cat os_setup.err; exit 1; }
+        wait $pid2 || { echo "setup_javascript_environment failed"; cat js_setup.log; cat js_setup.err; exit 1; }
+        wait $pid3 || { echo "setup_mkcert_and_cmake failed"; cat mkcert_cmake_setup.log; cat mkcert_cmake_setup.err; exit 1; }
 
     # Save Python dependencies cache
     - name: Save Python dependencies cache
