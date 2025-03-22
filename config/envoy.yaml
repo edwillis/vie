@@ -59,6 +59,21 @@ static_resources:
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                  - name: envoy.filters.http.header_to_metadata
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.header_to_metadata.v3.Config
+                      response_headers:
+                        - header: x-frame-options
+                          on_header_missing:
+                            metadata_namespace: envoy.lb
+                            key: x-frame-options
+                            value: "DENY"
+                        
+                        - header: content-security-policy
+                          on_header_missing:
+                            metadata_namespace: envoy.lb
+                            key: content-security-policy
+                            value: "frame-ancestors 'none'; default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
 
   clusters:
     - name: terrain_generation_service
