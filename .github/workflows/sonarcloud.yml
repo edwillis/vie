@@ -43,7 +43,10 @@ jobs:
           echo "Caching Python dependencies..."
           pip_cache_dir=~/.cache/pip
           mkdir -p $pip_cache_dir
-
+          key: ${{ runner.os }}-pip-${{ hashFiles('python_services/**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+          
           echo "Installing Python dependencies..."
           python -m pip install --upgrade pip
           pip install -r python_services/terrain_generation/requirements.txt
@@ -54,7 +57,12 @@ jobs:
           echo "Caching JavaScript dependencies..."
           npm_cache_dir=~/.npm
           mkdir -p $npm_cache_dir
-
+          with:
+            path: javascript_services/vie_ui/node_modules
+            key: ${{ runner.os }}-node-${{ hashFiles('javascript_services/vie_ui/package-lock.json') }}
+            restore-keys: |
+              ${{ runner.os }}-node-
+            
           echo "Installing JavaScript dependencies..."
           cd javascript_services/vie_ui
           npm install 
@@ -71,7 +79,10 @@ jobs:
           echo "Caching mkcert data..."
           mkcert_cache_dir=~/Library/Application\ Support/mkcert
           mkdir -p "$mkcert_cache_dir"
-
+          with:
+            path: ~/Library/Application Support/mkcert
+            key: ${{ runner.os }}-mkcert
+            
           echo "Installing mkcert..."
           mkcert -install
 
