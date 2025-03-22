@@ -88,14 +88,14 @@ jobs:
           cmake --version
         }
 
-        # Call each setup function in the background and track PIDs
-        setup_os_and_python_environment &
+        # Call each setup function in the background and use process substitution with tee
+        setup_os_and_python_environment > >(tee os_setup.log) 2> >(tee os_setup.err >&2) &
         pid1=$!
 
-        setup_javascript_environment &
+        setup_javascript_environment > >(tee js_setup.log) 2> >(tee js_setup.err >&2) &
         pid2=$!
 
-        setup_mkcert_and_cmake &
+        setup_mkcert_and_cmake > >(tee mkcert_cmake_setup.log) 2> >(tee mkcert_cmake_setup.err >&2) &
         pid3=$!
 
         # Wait for all background processes to complete
