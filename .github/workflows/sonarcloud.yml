@@ -19,7 +19,7 @@ jobs:
       with:
         fetch-depth: 0
     
-    - name: Setup Functions
+    - name: Setup Environment
       run: |
         setup_environment() {
           echo "Caching apt packages..."
@@ -83,6 +83,22 @@ jobs:
           sudo sh /tmp/cmake.sh --skip-license --prefix=/usr/local
           cmake --version
         }
+
+        # Call each setup function in the background and track PIDs
+        setup_environment &
+        pid1=$!
+
+        setup_python_environment &
+        pid2=$!
+
+        setup_javascript_environment &
+        pid3=$!
+
+        setup_mkcert_and_cmake &
+        pid4=$!
+
+        # Wait for all background processes to complete
+        wait $pid1 $pid2 $pid3 $pid4
 
     - name: Run Tests and Start Application
       run: |
