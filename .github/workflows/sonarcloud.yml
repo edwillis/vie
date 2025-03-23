@@ -220,9 +220,7 @@ jobs:
             -t https://localhost:3001 \
             -r /zap/wrk/zap-report.html \
             -z "certificate.accept.unsecure.certs=true" \
-            -I -a \
-            --hook=github \
-            --hook-config="repo=owner/repo,token=${GITHUB_TOKEN},alertThreshold=Medium"
+            -I -a
           
           # Store exit code
           echo $? > tmp/zap_exit_code
