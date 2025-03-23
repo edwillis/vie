@@ -215,11 +215,14 @@ jobs:
           docker run --rm \
             --network="host" \
             -v "$(pwd)/reports:/zap/wrk/:rw" \
+            -e GITHUB_TOKEN=${{ secrets.PAT_ZAP_SECRET }} \
             -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
             -t https://localhost:3001 \
             -r /zap/wrk/zap-report.html \
             -z "certificate.accept.unsecure.certs=true" \
-            -I -a
+            -I -a \
+            --hook=github \
+            --hook-config="repo=owner/repo,token=${GITHUB_TOKEN},alertThreshold=Medium"
           
           # Store exit code
           echo $? > tmp/zap_exit_code
